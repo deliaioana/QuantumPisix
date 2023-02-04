@@ -4,6 +4,7 @@ import level
 import cat as felines
 from pygame import mixer
 import game_element
+import os
 
 
 mixer.init()
@@ -122,11 +123,17 @@ def measure_cats():
 
 
 def get_cat_frames(cat):
-    frame_1_name = 'assets/cats/' + str(cat[0]) + '/' + str(cat[0]) + '_' + str(cat[1]) + '_1.png'
-    frame_2_name = 'assets/cats/' + str(cat[0]) + '/' + str(cat[0]) + '_' + str(cat[1]) + '_2.png'
-    frame_1_img = pygame.image.load(frame_1_name).convert_alpha()
-    frame_2_img = pygame.image.load(frame_2_name).convert_alpha()
-    return [frame_1_img, frame_2_img]
+    path = os.path.join('assets/cats/', str(cat[0]))
+    frames = os.listdir(path)
+    frames = [path + '/' + f for f in frames if os.path.isfile(path + '/' + f)]
+
+    frames_as_list = []
+
+    for frame in frames:
+        img = pygame.image.load(frame).convert_alpha()
+        frames_as_list.append(img)
+
+    return frames_as_list
 
 
 def place_cat(cat, x, y):
@@ -159,7 +166,7 @@ def place_row(y, cat, number_of_free_spaces):
 
 
 def draw_level():
-    level_1 = level.Level([('foxy', 'idle'), ('foxy', 'idle')], [2], 3, IMAGES['output'])
+    level_1 = level.Level([('foxy', 'idle'), ('miso', 'idle'), ('cookie', 'idle'), ('peanut', 'idle')], [2], 3, IMAGES['output'])
     global LEVELS, CURRENT_LEVEL
 
     place_common_elements()
