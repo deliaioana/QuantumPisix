@@ -13,8 +13,8 @@ IS_MUSIC_PLAYING = False
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
 
-PIXELS = {'row-space': 20, 'col-space': 20, 'cat-height': 80, 'cat-x': 200, 'level-height-center': 350,
-          'level-width-center': 500, 'gate-width': 100, 'cat-width': 85}
+PIXELS = {'row-space': 20, 'col-space': 30, 'cat-height': 80, 'cat-x': 200, 'level-height-center': 350,
+          'level-width-center': 500, 'gate-width': 100, 'cat-width': 85, 'row-height': 100}
 
 CLOCK = pygame.time.Clock()
 pygame.init()
@@ -166,30 +166,19 @@ def place_row(y, cat, number_of_free_spaces):
 
 
 def draw_level():
-    level_1 = level.Level([('foxy', 'idle'), ('miso', 'idle'), ('cookie', 'idle'), ('peanut', 'idle')], [2], 3, IMAGES['output'])
+    level_1 = level.Level([('miso', 'idle'), ('cookie', 'idle'), ('peanut', 'idle'), ('foxy', 'idle')], [2], 2, IMAGES['output'])
     global LEVELS, CURRENT_LEVEL
 
     place_common_elements()
 
     number_of_cats = len(level_1.cats)
+    total_height = PIXELS['row-height'] * number_of_cats + PIXELS['row-space'] * (number_of_cats - 1)
+    starting_y = PIXELS['level-height-center'] - total_height * 0.5
 
     for i in range(number_of_cats):
-        if number_of_cats % 2 == 0:
-            middle = number_of_cats / 2
-            distance = i + 1 - middle
-            if distance < 1:
-                y = PIXELS['level-height-center'] + distance * (PIXELS['cat-height'] + PIXELS['row-space']) \
-                    - 0.5 * (PIXELS['cat-height'] + PIXELS['row-space'])
-                place_row(y, level_1.cats[i], level_1.number_of_free_spaces)
-            else:
-                y = PIXELS['level-height-center'] + distance * PIXELS['row-space'] \
-                    + (distance + 0.5) * PIXELS['cat-height']
-                place_row(y, level_1.cats[i], level_1.number_of_free_spaces)
-        else:
-            middle = number_of_cats // 2 + 1
-            distance = i + 1 - middle
-            y = PIXELS['level-height-center'] + distance * (PIXELS['cat-height'] + PIXELS['row-space'])
-            place_row(y, level_1.cats[i], level_1.number_of_free_spaces)
+        y = starting_y + i * (PIXELS['row-height'] + PIXELS['row-space']) + PIXELS['row-space'] \
+            + 0.5 * PIXELS['row-height']
+        place_row(y, level_1.cats[i], level_1.number_of_free_spaces)
 
 
 def create_button_and_call_function_on_press(button_name, func):
