@@ -65,7 +65,7 @@ def init_variables():
     IMAGES['how_to_text'] = pygame.image.load('assets/other/how_to.png').convert_alpha()
 
     IMAGES['free_space'] = pygame.image.load('assets/level/free_space_test.png').convert_alpha()
-    IMAGES['output'] = pygame.image.load('assets/level/output_test.png').convert_alpha()
+    IMAGES['output'] = pygame.image.load('assets/level/level_1_output.png').convert_alpha()
     IMAGES['spiral'] = pygame.image.load('assets/level/spiral_test.png').convert_alpha()
     IMAGES['gates'] = pygame.image.load('assets/level/test_gates.png').convert_alpha()
 
@@ -166,7 +166,7 @@ def place_row(y, cat, number_of_free_spaces):
 
 
 def draw_level():
-    level_1 = level.Level([('miso', 'idle'), ('cookie', 'idle'), ('peanut', 'idle'), ('foxy', 'idle')], [2], 2, IMAGES['output'])
+    level_1 = level.Level([('miso', 'idle'), ('cookie', 'idle'), ('peanut', 'idle')], [2], 2, IMAGES['output'])
     global LEVELS, CURRENT_LEVEL
 
     place_common_elements()
