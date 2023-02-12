@@ -67,8 +67,8 @@ def init_variables():
 
     IMAGES['free_space'] = pygame.image.load('assets/level/free_space_test.png').convert_alpha()
     IMAGES['output'] = pygame.image.load('assets/level/level_1_output.png').convert_alpha()
-    IMAGES['spiral'] = pygame.image.load('assets/level/spiral_test.png').convert_alpha()
-    IMAGES['gates'] = pygame.image.load('assets/level/test_gates.png').convert_alpha()
+    IMAGES['camera'] = pygame.image.load('assets/level/camera.png').convert_alpha()
+    IMAGES['gate-zone'] = pygame.image.load('assets/level/gate_zone.png').convert_alpha()
 
     BUTTONS['play'] = button.Button(500, 300, IMAGES['play'], IMAGES['play_hover'], 1)
     BUTTONS['quit'] = button.Button(500, 400, IMAGES['quit'], IMAGES['quit_hover'], 1)
@@ -146,7 +146,7 @@ def place_cat(cat, x, y):
 
 
 def place_common_elements():
-    SCREEN.blit(IMAGES['gates'], (150, 10))
+    SCREEN.blit(IMAGES['gate-zone'], (150, 10))
     SCREEN.blit(IMAGES['output'], (875, 10))
 
 
@@ -164,8 +164,8 @@ def place_row(y, cat, number_of_free_spaces):
         free_space = game_element.Element([IMAGES['free_space']], free_space_x, y)
         MOVING_SPRITES.add(free_space)
 
-    spiral = game_element.Element([IMAGES['spiral']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y)
-    MOVING_SPRITES.add(spiral)
+    camera = game_element.Element([IMAGES['camera']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y)
+    MOVING_SPRITES.add(camera)
 
 
 def get_level_from_screen():
