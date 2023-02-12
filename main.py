@@ -1,10 +1,10 @@
 import pygame
 import button
-import level
 import cat as felines
 from pygame import mixer
 import game_element
 import os
+import levels
 
 
 mixer.init()
@@ -27,12 +27,13 @@ BUTTONS = {}
 
 RUNNING = True
 A_BUTTON_WAS_CLICKED = False
-CURRENT_LEVEL = None
+CURRENT_LEVEL_NUMBER = None
 CURRENT_LEVEL_WAS_DRAWN = False
 ACTIVE_SCREEN = 'menu'
 
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
 MOVING_SPRITES = pygame.sprite.Group()
+PLAYABLE_LEVELS = levels.Levels()
 
 
 def init_variables():
@@ -96,7 +97,7 @@ def place_centered_image(img, x):
 
 
 def place_level_buttons():
-    global ACTIVE_SCREEN, A_BUTTON_WAS_CLICKED, CURRENT_LEVEL
+    global ACTIVE_SCREEN, A_BUTTON_WAS_CLICKED, CURRENT_LEVEL_NUMBER
     for i in range(len(LEVELS)):
         x = int(200 * (i % 4 + 1))
         y = int(200 + 100 * (i // 4 + 1))
@@ -113,8 +114,10 @@ def place_level_buttons():
 
 
 def update_current_level(x):
-    global CURRENT_LEVEL, ACTIVE_SCREEN
-    CURRENT_LEVEL = x
+    global CURRENT_LEVEL_NUMBER, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN
+
+    CURRENT_LEVEL_WAS_DRAWN = False
+    CURRENT_LEVEL_NUMBER = x
     ACTIVE_SCREEN = 'level_' + str(x)
 
 
@@ -165,20 +168,29 @@ def place_row(y, cat, number_of_free_spaces):
     MOVING_SPRITES.add(spiral)
 
 
+def get_level_from_screen():
+    screen = ACTIVE_SCREEN
+    return int(screen.split('_')[1])
+
+
 def draw_level():
-    level_1 = level.Level([('miso', 'idle'), ('cookie', 'idle'), ('peanut', 'idle')], [2], 2, IMAGES['output'])
-    global LEVELS, CURRENT_LEVEL
+    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES
+
+    MOVING_SPRITES.empty()
+    CURRENT_LEVEL_NUMBER = get_level_from_screen()
+
+    current_level = PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER]
 
     place_common_elements()
 
-    number_of_cats = len(level_1.cats)
+    number_of_cats = len(current_level.cats)
     total_height = PIXELS['row-height'] * number_of_cats + PIXELS['row-space'] * (number_of_cats - 1)
     starting_y = PIXELS['level-height-center'] - total_height * 0.5
 
     for i in range(number_of_cats):
         y = starting_y + i * (PIXELS['row-height'] + PIXELS['row-space']) + PIXELS['row-space'] \
             + 0.5 * PIXELS['row-height']
-        place_row(y, level_1.cats[i], level_1.number_of_free_spaces)
+        place_row(y, current_level.cats[i], current_level.number_of_free_spaces)
 
 
 def create_button_and_call_function_on_press(button_name, func):
@@ -247,7 +259,7 @@ def start_game_loop():
             create_button_and_call_function_on_press(BUTTONS['sound'], lambda: press_sound())
             create_button_and_change_screen(BUTTONS['help'], 'help')
             create_button_and_change_screen(BUTTONS['menu'], 'menu')
-            create_button_and_change_screen(BUTTONS['back'], 'level_' + str(CURRENT_LEVEL))
+            create_button_and_change_screen(BUTTONS['back'], 'level_' + str(CURRENT_LEVEL_NUMBER))
 
         elif ACTIVE_SCREEN == 'help':
             place_centered_image(IMAGES['how_to_play_title'], 100)
