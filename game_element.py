@@ -2,13 +2,13 @@ import pygame
 
 
 class Element(pygame.sprite.Sprite):
-    def __init__(self, frames, x, y):
+    def __init__(self, frames, x, y, speed):
         super().__init__()
         self.sprites = []
         self.sprites.extend(frames)
         self.current_sprite = 0
         self.image = self.sprites[self.current_sprite]
-        self.speed = 0.02
+        self.speed = speed
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
 

@@ -14,7 +14,8 @@ SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
 
 PIXELS = {'row-space': 20, 'col-space': 30, 'cat-height': 80, 'cat-x': 200, 'level-height-center': 350,
-          'level-width-center': 500, 'gate-width': 100, 'cat-width': 85, 'row-height': 100}
+          'level-width-center': 500, 'gate-width': 100, 'cat-width': 85, 'row-height': 100,
+          'gates-y': 65, 'gate-space': 20}
 
 CLOCK = pygame.time.Clock()
 pygame.init()
@@ -125,22 +126,8 @@ def measure_cats():
     print('Your cats are very pretty today :)')
 
 
-def get_cat_frames(cat):
-    path = os.path.join('assets/cats/', str(cat[0]))
-    frames = os.listdir(path)
-    frames = [path + '/' + f for f in frames if os.path.isfile(path + '/' + f)]
-
-    frames_as_list = []
-
-    for frame in frames:
-        img = pygame.image.load(frame).convert_alpha()
-        frames_as_list.append(img)
-
-    return frames_as_list
-
-
 def place_cat(cat, x, y):
-    frames = get_cat_frames(cat)
+    frames = get_object_sprites('assets/cats/', cat[0])
     cat = felines.Cat(frames, x, y)
     MOVING_SPRITES.add(cat)
 
@@ -161,16 +148,46 @@ def place_row(y, cat, number_of_free_spaces):
     for i in range(number_of_free_spaces):
         free_space_x = starting_x + PIXELS['cat-width'] + i * (PIXELS['gate-width'] + PIXELS['col-space']) \
                        + 0.5 * PIXELS['gate-width'] + PIXELS['col-space']
-        free_space = game_element.Element([IMAGES['free_space']], free_space_x, y)
+        free_space = game_element.Element([IMAGES['free_space']], free_space_x, y, 0)
         MOVING_SPRITES.add(free_space)
 
-    camera = game_element.Element([IMAGES['camera']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y)
+    camera = game_element.Element([IMAGES['camera']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y, 0)
     MOVING_SPRITES.add(camera)
 
 
 def get_level_from_screen():
     screen = ACTIVE_SCREEN
     return int(screen.split('_')[1])
+
+
+def get_object_sprites(path, obj):
+    path = os.path.join(path, str(obj))
+    frames = os.listdir(path)
+    frames.sort(key=lambda x: int(x.split('_')[-1][:-4]))
+    frames = [path + '/' + f for f in frames if os.path.isfile(path + '/' + f)]
+
+    frames_as_list = []
+
+    for frame in frames:
+        img = pygame.image.load(frame).convert_alpha()
+        frames_as_list.append(img)
+
+    return frames_as_list
+
+
+def place_gates(gates):
+    number_of_gates = len(gates)
+    total_width = number_of_gates * PIXELS['gate-width'] + (number_of_gates - 1) * PIXELS['gate-space']
+    starting_x = PIXELS['level-width-center'] - 0.5 * total_width
+
+    for i, gate in enumerate(gates):
+        sprites = get_object_sprites('assets/level/gates/', gate)
+
+        x = starting_x + i * (PIXELS['gate-width'] + PIXELS['gate-space']) \
+                       + 0.5 * PIXELS['gate-width'] + PIXELS['gate-space']
+
+        element = game_element.Element(sprites, x, PIXELS['gates-y'], 0.2)
+        MOVING_SPRITES.add(element)
 
 
 def draw_level():
@@ -182,6 +199,7 @@ def draw_level():
     current_level = PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER]
 
     place_common_elements()
+    place_gates(current_level.gates)
 
     number_of_cats = len(current_level.cats)
     total_height = PIXELS['row-height'] * number_of_cats + PIXELS['row-space'] * (number_of_cats - 1)
