@@ -21,7 +21,7 @@ CLOCK = pygame.time.Clock()
 pygame.init()
 
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Menu')
+pygame.display.set_caption('Quantum Pisix')
 
 IMAGES = {}
 BUTTONS = {}
@@ -34,6 +34,7 @@ ACTIVE_SCREEN = 'menu'
 
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
 MOVING_SPRITES = pygame.sprite.Group()
+MOVABLE_SPRITES = []
 PLAYABLE_LEVELS = levels.Levels()
 
 
@@ -188,6 +189,7 @@ def place_gates(gates):
 
         element = game_element.Element(sprites, x, PIXELS['gates-y'], 0.2)
         MOVING_SPRITES.add(element)
+        MOVABLE_SPRITES.append(element)
 
 
 def draw_level():
@@ -285,8 +287,19 @@ def start_game_loop():
             create_button_and_change_screen(BUTTONS['back'], 'options')
 
         for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                position = pygame.mouse.get_pos()
+                for element in MOVABLE_SPRITES:
+                    if element.is_inside(position):
+                        element.is_moving = True
+
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                for element in MOVABLE_SPRITES:
+                    element.is_moving = False
+
             if event.type == pygame.MOUSEBUTTONUP:
                 A_BUTTON_WAS_CLICKED = False
+
             if event.type == pygame.QUIT:
                 RUNNING = False
 
