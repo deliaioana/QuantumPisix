@@ -134,8 +134,13 @@ def place_cat(cat, x, y):
 
 
 def place_common_elements():
+    global CURRENT_LEVEL_NUMBER
+
     SCREEN.blit(IMAGES['gate-zone'], (150, 10))
-    SCREEN.blit(IMAGES['output'], (875, 10))
+
+    current_output_image_name = 'assets/level/outputs/level_' + str(CURRENT_LEVEL_NUMBER) + '.png'
+    output_image = pygame.image.load(current_output_image_name).convert_alpha()
+    SCREEN.blit(output_image, (875, 10))
 
 
 def place_row(y, cat, number_of_free_spaces):
