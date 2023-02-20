@@ -35,6 +35,8 @@ ACTIVE_SCREEN = 'menu'
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
 MOVING_SPRITES = pygame.sprite.Group()
 MOVABLE_SPRITES = []
+FREE_SPACES_GROUP = pygame.sprite.Group()
+FREE_SPACES_LIST = []
 PLAYABLE_LEVELS = levels.Levels()
 
 
@@ -155,7 +157,8 @@ def place_row(y, cat, number_of_free_spaces):
         free_space_x = starting_x + PIXELS['cat-width'] + i * (PIXELS['gate-width'] + PIXELS['col-space']) \
                        + 0.5 * PIXELS['gate-width'] + PIXELS['col-space']
         free_space = game_element.Element([IMAGES['free_space']], free_space_x, y, 0)
-        MOVING_SPRITES.add(free_space)
+        FREE_SPACES_GROUP.add(free_space)
+        FREE_SPACES_LIST.append(free_space)
 
     camera = game_element.Element([IMAGES['camera']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y, 0)
     MOVING_SPRITES.add(camera)
@@ -197,10 +200,21 @@ def place_gates(gates):
         MOVABLE_SPRITES.append(element)
 
 
+def filter_free_spaces_by_visibility():
+    global FREE_SPACES_GROUP, FREE_SPACES_LIST
+
+    FREE_SPACES_GROUP.empty()
+    for free_space in FREE_SPACES_LIST:
+        if free_space.is_visible:
+            FREE_SPACES_GROUP.add(free_space)
+
+
 def draw_level():
-    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES
+    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST
 
     MOVING_SPRITES.empty()
+    FREE_SPACES_GROUP.empty()
+    FREE_SPACES_LIST.clear()
     CURRENT_LEVEL_NUMBER = get_level_from_screen()
 
     current_level = PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER]
@@ -246,7 +260,7 @@ def play_music():
 
 
 def start_game_loop():
-    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, RUNNING, CURRENT_LEVEL_WAS_DRAWN
+    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, RUNNING, CURRENT_LEVEL_WAS_DRAWN, FREE_SPACES_GROUP, FREE_SPACES_LIST
 
     init_variables()
     play_music()
@@ -276,6 +290,9 @@ def start_game_loop():
             MOVING_SPRITES.draw(SCREEN)
             MOVING_SPRITES.update()
 
+            filter_free_spaces_by_visibility()
+            FREE_SPACES_GROUP.draw(SCREEN)
+
             create_button_and_change_screen(BUTTONS['options'], 'options')
             create_button_and_call_function_on_press(BUTTONS['check'], measure_cats)
 
@@ -295,12 +312,21 @@ def start_game_loop():
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 position = pygame.mouse.get_pos()
                 for element in MOVABLE_SPRITES:
-                    if element.is_inside(position):
+                    if element.is_position_inside(position):
                         element.is_moving = True
+                        if element.is_attached_to_free_space:
+                            element.is_attached_to_free_space = False
+                            element.free_space.is_visible = True
+                            element.free_space.attached_gate = None
+                            element.free_space = None
 
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 for element in MOVABLE_SPRITES:
-                    element.is_moving = False
+                    if element.is_moving:
+                        element.is_moving = False
+                        for free_space in FREE_SPACES_LIST:
+                            if element.is_inside_free_space(free_space):
+                                free_space.attach_gate(element)
 
             if event.type == pygame.MOUSEBUTTONUP:
                 A_BUTTON_WAS_CLICKED = False
