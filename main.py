@@ -1,10 +1,10 @@
 import pygame
 import button
-import level
 import cat as felines
 from pygame import mixer
 import game_element
 import os
+import levels
 
 
 mixer.init()
@@ -14,25 +14,30 @@ SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
 
 PIXELS = {'row-space': 20, 'col-space': 30, 'cat-height': 80, 'cat-x': 200, 'level-height-center': 350,
-          'level-width-center': 500, 'gate-width': 100, 'cat-width': 85, 'row-height': 100}
+          'level-width-center': 500, 'gate-width': 100, 'cat-width': 85, 'row-height': 100,
+          'gates-y': 65, 'gate-space': 20}
 
 CLOCK = pygame.time.Clock()
 pygame.init()
 
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Menu')
+pygame.display.set_caption('Quantum Pisix')
 
 IMAGES = {}
 BUTTONS = {}
 
 RUNNING = True
 A_BUTTON_WAS_CLICKED = False
-CURRENT_LEVEL = None
+CURRENT_LEVEL_NUMBER = None
 CURRENT_LEVEL_WAS_DRAWN = False
 ACTIVE_SCREEN = 'menu'
 
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
 MOVING_SPRITES = pygame.sprite.Group()
+MOVABLE_SPRITES = []
+FREE_SPACES_GROUP = pygame.sprite.Group()
+FREE_SPACES_LIST = []
+PLAYABLE_LEVELS = levels.Levels()
 
 
 def init_variables():
@@ -65,9 +70,9 @@ def init_variables():
     IMAGES['how_to_text'] = pygame.image.load('assets/other/how_to.png').convert_alpha()
 
     IMAGES['free_space'] = pygame.image.load('assets/level/free_space_test.png').convert_alpha()
-    IMAGES['output'] = pygame.image.load('assets/level/output_test.png').convert_alpha()
-    IMAGES['spiral'] = pygame.image.load('assets/level/spiral_test.png').convert_alpha()
-    IMAGES['gates'] = pygame.image.load('assets/level/test_gates.png').convert_alpha()
+    IMAGES['output'] = pygame.image.load('assets/level/level_1_output.png').convert_alpha()
+    IMAGES['camera'] = pygame.image.load('assets/level/camera.png').convert_alpha()
+    IMAGES['gate-zone'] = pygame.image.load('assets/level/gate_zone.png').convert_alpha()
 
     BUTTONS['play'] = button.Button(500, 300, IMAGES['play'], IMAGES['play_hover'], 1)
     BUTTONS['quit'] = button.Button(500, 400, IMAGES['quit'], IMAGES['quit_hover'], 1)
@@ -96,7 +101,7 @@ def place_centered_image(img, x):
 
 
 def place_level_buttons():
-    global ACTIVE_SCREEN, A_BUTTON_WAS_CLICKED, CURRENT_LEVEL
+    global ACTIVE_SCREEN, A_BUTTON_WAS_CLICKED, CURRENT_LEVEL_NUMBER
     for i in range(len(LEVELS)):
         x = int(200 * (i % 4 + 1))
         y = int(200 + 100 * (i // 4 + 1))
@@ -113,8 +118,10 @@ def place_level_buttons():
 
 
 def update_current_level(x):
-    global CURRENT_LEVEL, ACTIVE_SCREEN
-    CURRENT_LEVEL = x
+    global CURRENT_LEVEL_NUMBER, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN
+
+    CURRENT_LEVEL_WAS_DRAWN = False
+    CURRENT_LEVEL_NUMBER = x
     ACTIVE_SCREEN = 'level_' + str(x)
 
 
@@ -122,29 +129,20 @@ def measure_cats():
     print('Your cats are very pretty today :)')
 
 
-def get_cat_frames(cat):
-    path = os.path.join('assets/cats/', str(cat[0]))
-    frames = os.listdir(path)
-    frames = [path + '/' + f for f in frames if os.path.isfile(path + '/' + f)]
-
-    frames_as_list = []
-
-    for frame in frames:
-        img = pygame.image.load(frame).convert_alpha()
-        frames_as_list.append(img)
-
-    return frames_as_list
-
-
 def place_cat(cat, x, y):
-    frames = get_cat_frames(cat)
+    frames = get_object_sprites('assets/cats/', cat[0])
     cat = felines.Cat(frames, x, y)
     MOVING_SPRITES.add(cat)
 
 
 def place_common_elements():
-    SCREEN.blit(IMAGES['gates'], (150, 10))
-    SCREEN.blit(IMAGES['output'], (875, 10))
+    global CURRENT_LEVEL_NUMBER
+
+    SCREEN.blit(IMAGES['gate-zone'], (150, 10))
+
+    current_output_image_name = 'assets/level/outputs/level_' + str(CURRENT_LEVEL_NUMBER) + '.png'
+    output_image = pygame.image.load(current_output_image_name).convert_alpha()
+    SCREEN.blit(output_image, (875, 10))
 
 
 def place_row(y, cat, number_of_free_spaces):
@@ -158,27 +156,80 @@ def place_row(y, cat, number_of_free_spaces):
     for i in range(number_of_free_spaces):
         free_space_x = starting_x + PIXELS['cat-width'] + i * (PIXELS['gate-width'] + PIXELS['col-space']) \
                        + 0.5 * PIXELS['gate-width'] + PIXELS['col-space']
-        free_space = game_element.Element([IMAGES['free_space']], free_space_x, y)
-        MOVING_SPRITES.add(free_space)
+        free_space = game_element.Element([IMAGES['free_space']], free_space_x, y, 0)
+        FREE_SPACES_GROUP.add(free_space)
+        FREE_SPACES_LIST.append(free_space)
 
-    spiral = game_element.Element([IMAGES['spiral']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y)
-    MOVING_SPRITES.add(spiral)
+    camera = game_element.Element([IMAGES['camera']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y, 0)
+    MOVING_SPRITES.add(camera)
+
+
+def get_level_from_screen():
+    screen = ACTIVE_SCREEN
+    return int(screen.split('_')[1])
+
+
+def get_object_sprites(path, obj):
+    path = os.path.join(path, str(obj))
+    frames = os.listdir(path)
+    frames.sort(key=lambda x: int(x.split('_')[-1][:-4]))
+    frames = [path + '/' + f for f in frames if os.path.isfile(path + '/' + f)]
+
+    frames_as_list = []
+
+    for frame in frames:
+        img = pygame.image.load(frame).convert_alpha()
+        frames_as_list.append(img)
+
+    return frames_as_list
+
+
+def place_gates(gates):
+    number_of_gates = len(gates)
+    total_width = number_of_gates * PIXELS['gate-width'] + (number_of_gates - 1) * PIXELS['gate-space']
+    starting_x = PIXELS['level-width-center'] - 0.5 * total_width
+
+    for i, gate in enumerate(gates):
+        sprites = get_object_sprites('assets/level/gates/', gate)
+
+        x = starting_x + i * (PIXELS['gate-width'] + PIXELS['gate-space']) \
+                       + 0.5 * PIXELS['gate-width'] + PIXELS['gate-space']
+
+        element = game_element.Element(sprites, x, PIXELS['gates-y'], 0.2)
+        MOVING_SPRITES.add(element)
+        MOVABLE_SPRITES.append(element)
+
+
+def filter_free_spaces_by_visibility():
+    global FREE_SPACES_GROUP, FREE_SPACES_LIST
+
+    FREE_SPACES_GROUP.empty()
+    for free_space in FREE_SPACES_LIST:
+        if free_space.is_visible:
+            FREE_SPACES_GROUP.add(free_space)
 
 
 def draw_level():
-    level_1 = level.Level([('miso', 'idle'), ('cookie', 'idle'), ('peanut', 'idle'), ('foxy', 'idle')], [2], 2, IMAGES['output'])
-    global LEVELS, CURRENT_LEVEL
+    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST
+
+    MOVING_SPRITES.empty()
+    FREE_SPACES_GROUP.empty()
+    FREE_SPACES_LIST.clear()
+    CURRENT_LEVEL_NUMBER = get_level_from_screen()
+
+    current_level = PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER]
 
     place_common_elements()
+    place_gates(current_level.gates)
 
-    number_of_cats = len(level_1.cats)
+    number_of_cats = len(current_level.cats)
     total_height = PIXELS['row-height'] * number_of_cats + PIXELS['row-space'] * (number_of_cats - 1)
     starting_y = PIXELS['level-height-center'] - total_height * 0.5
 
     for i in range(number_of_cats):
         y = starting_y + i * (PIXELS['row-height'] + PIXELS['row-space']) + PIXELS['row-space'] \
             + 0.5 * PIXELS['row-height']
-        place_row(y, level_1.cats[i], level_1.number_of_free_spaces)
+        place_row(y, current_level.cats[i], current_level.number_of_free_spaces)
 
 
 def create_button_and_call_function_on_press(button_name, func):
@@ -209,7 +260,7 @@ def play_music():
 
 
 def start_game_loop():
-    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, RUNNING, CURRENT_LEVEL_WAS_DRAWN
+    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, RUNNING, CURRENT_LEVEL_WAS_DRAWN, FREE_SPACES_GROUP, FREE_SPACES_LIST
 
     init_variables()
     play_music()
@@ -239,6 +290,9 @@ def start_game_loop():
             MOVING_SPRITES.draw(SCREEN)
             MOVING_SPRITES.update()
 
+            filter_free_spaces_by_visibility()
+            FREE_SPACES_GROUP.draw(SCREEN)
+
             create_button_and_change_screen(BUTTONS['options'], 'options')
             create_button_and_call_function_on_press(BUTTONS['check'], measure_cats)
 
@@ -247,7 +301,7 @@ def start_game_loop():
             create_button_and_call_function_on_press(BUTTONS['sound'], lambda: press_sound())
             create_button_and_change_screen(BUTTONS['help'], 'help')
             create_button_and_change_screen(BUTTONS['menu'], 'menu')
-            create_button_and_change_screen(BUTTONS['back'], 'level_' + str(CURRENT_LEVEL))
+            create_button_and_change_screen(BUTTONS['back'], 'level_' + str(CURRENT_LEVEL_NUMBER))
 
         elif ACTIVE_SCREEN == 'help':
             place_centered_image(IMAGES['how_to_play_title'], 100)
@@ -255,8 +309,28 @@ def start_game_loop():
             create_button_and_change_screen(BUTTONS['back'], 'options')
 
         for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                position = pygame.mouse.get_pos()
+                for element in MOVABLE_SPRITES:
+                    if element.is_position_inside(position):
+                        element.is_moving = True
+                        if element.is_attached_to_free_space:
+                            element.is_attached_to_free_space = False
+                            element.free_space.is_visible = True
+                            element.free_space.attached_gate = None
+                            element.free_space = None
+
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                for element in MOVABLE_SPRITES:
+                    if element.is_moving:
+                        element.is_moving = False
+                        for free_space in FREE_SPACES_LIST:
+                            if element.is_inside_free_space(free_space):
+                                free_space.attach_gate(element)
+
             if event.type == pygame.MOUSEBUTTONUP:
                 A_BUTTON_WAS_CLICKED = False
+
             if event.type == pygame.QUIT:
                 RUNNING = False
 
