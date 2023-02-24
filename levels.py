@@ -5,11 +5,11 @@ class Levels:
     def __init__(self):
         self.levels = []
 
-        level_1 = level.Level([('foxy', 'idle')], ['kiss_gate'], 1)
+        level_1 = level.Level([('foxy', 'asleep')], [], 1)
         level_2 = level.Level([('miso', 'idle'), ('miso', 'idle')], ['kiss_gate', 'catnip_gate'], 1)
         level_3 = level.Level([('foxy', 'idle'), ('peanut', 'idle'), ('cookie', 'idle')], ['kiss_gate'], 1)
         level_4 = level.Level([('miso', 'idle'), ('foxy', 'idle'), ('peanut', 'idle'), ('cookie', 'idle')],
-                              ['kiss_gate', 'catnip_gate', 'kiss_gate', 'catnip_gate'], 1)
+                              ['catnip_gate', 'catnip_gate'], 1)
         level_5 = level.Level([('miso', 'idle')], ['kiss_gate'], 2)
         level_6 = level.Level([('foxy', 'idle')], ['kiss_gate'], 3)
         level_7 = level.Level([('cookie', 'idle')], ['kiss_gate'], 4)
@@ -27,3 +27,4 @@ class Levels:
 
     def get_levels(self):
         return self.levels
+

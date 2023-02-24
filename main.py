@@ -130,8 +130,13 @@ def measure_cats():
 
 
 def place_cat(cat, x, y):
-    frames = get_object_sprites('assets/cats/', cat[0])
-    cat = felines.Cat(frames, x, y)
+    idle_frames = get_cat_sprites('assets/cats/', cat[0], 'idle')
+    asleep_frames = get_cat_sprites('assets/cats/', cat[0], 'asleep')
+    super_frames = get_cat_sprites('assets/cats/', cat[0], 'super')
+
+    current_state = cat[1]
+
+    cat = felines.Cat(idle_frames, asleep_frames, super_frames, current_state, x, y)
     MOVING_SPRITES.add(cat)
 
 
@@ -172,6 +177,31 @@ def get_level_from_screen():
 def get_object_sprites(path, obj):
     path = os.path.join(path, str(obj))
     frames = os.listdir(path)
+    frames.sort(key=lambda x: int(x.split('_')[-1][:-4]))
+    frames = [path + '/' + f for f in frames if os.path.isfile(path + '/' + f)]
+
+    frames_as_list = []
+
+    for frame in frames:
+        img = pygame.image.load(frame).convert_alpha()
+        frames_as_list.append(img)
+
+    return frames_as_list
+
+
+def get_only_correct_state_frames(frames, state):
+    wanted_frames = []
+    for frame in frames:
+        copy = str(frame)
+        if copy.split('_')[1] == str(state):
+            wanted_frames.append(frame)
+    return wanted_frames
+
+
+def get_cat_sprites(path, cat, state):
+    path = os.path.join(path, str(cat))
+    frames = os.listdir(path)
+    frames = get_only_correct_state_frames(frames, state)
     frames.sort(key=lambda x: int(x.split('_')[-1][:-4]))
     frames = [path + '/' + f for f in frames if os.path.isfile(path + '/' + f)]
 

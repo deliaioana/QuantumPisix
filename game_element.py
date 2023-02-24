@@ -58,4 +58,3 @@ class Element(pygame.sprite.Sprite):
 
     def center_here(self, position):
         self.rect.center = position
-
