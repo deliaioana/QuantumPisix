@@ -73,6 +73,7 @@ def init_variables():
     IMAGES['output'] = pygame.image.load('assets/level/level_1_output.png').convert_alpha()
     IMAGES['camera'] = pygame.image.load('assets/level/camera.png').convert_alpha()
     IMAGES['gate-zone'] = pygame.image.load('assets/level/gate_zone.png').convert_alpha()
+    IMAGES['platform_1'] = pygame.image.load('assets/level/platform_1.png').convert_alpha()
 
     BUTTONS['play'] = button.Button(500, 300, IMAGES['play'], IMAGES['play_hover'], 1)
     BUTTONS['quit'] = button.Button(500, 400, IMAGES['quit'], IMAGES['quit_hover'], 1)
@@ -140,6 +141,11 @@ def place_cat(cat, x, y):
     MOVING_SPRITES.add(cat)
 
 
+def place_platform(size, y):
+    platform = game_element.Element([IMAGES['platform_1']], PIXELS['level-width-center'], y + 40, 0)
+    MOVING_SPRITES.add(platform)
+
+
 def place_common_elements():
     global CURRENT_LEVEL_NUMBER
 
@@ -155,6 +161,9 @@ def place_row(y, cat, number_of_free_spaces):
     total_width = number_of_free_spaces * PIXELS['gate-width'] + (number_of_free_spaces + 1) * PIXELS['col-space'] \
                   + PIXELS['cat-width'] * 2
     starting_x = PIXELS['level-width-center'] - 0.5 * total_width
+
+    if number_of_free_spaces == 1:
+        place_platform(1, y)
 
     place_cat(cat, starting_x + 0.5 * PIXELS['cat-width'], y)
 
@@ -249,9 +258,6 @@ def draw_level():
 
     current_level = PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER]
 
-    place_common_elements()
-    place_gates(current_level.gates)
-
     number_of_cats = len(current_level.cats)
     total_height = PIXELS['row-height'] * number_of_cats + PIXELS['row-space'] * (number_of_cats - 1)
     starting_y = PIXELS['level-height-center'] - total_height * 0.5
@@ -260,6 +266,9 @@ def draw_level():
         y = starting_y + i * (PIXELS['row-height'] + PIXELS['row-space']) + PIXELS['row-space'] \
             + 0.5 * PIXELS['row-height']
         place_row(y, current_level.cats[i], current_level.number_of_free_spaces)
+
+    place_common_elements()
+    place_gates(current_level.gates)
 
 
 def create_button_and_call_function_on_press(button_name, func):
