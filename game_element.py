@@ -2,8 +2,9 @@ import pygame
 
 
 class Element(pygame.sprite.Sprite):
-    def __init__(self, frames, x, y, speed):
+    def __init__(self, name, frames, x, y, speed):
         super().__init__()
+        self.name = name
         self.sprites = []
         self.sprites.extend(frames)
         self.current_sprite = 0
@@ -58,3 +59,6 @@ class Element(pygame.sprite.Sprite):
 
     def center_here(self, position):
         self.rect.center = position
+
+    def delete(self):
+        self.kill()
