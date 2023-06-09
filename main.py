@@ -35,7 +35,8 @@ ACTIVE_SCREEN = 'menu'
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
 MOVING_SPRITES = pygame.sprite.Group()
 MOVABLE_SPRITES = []
-ACTIVE_GATE_GENERATORS = []
+ACTIVE_GATE_GENERATORS_SPRITES = pygame.sprite.Group()
+ACTIVE_GATE_GENERATORS_LIST = []
 FREE_SPACES_GROUP = pygame.sprite.Group()
 FREE_SPACES_LIST = []
 PLAYABLE_LEVELS = levels.Levels()
@@ -175,7 +176,8 @@ def place_row(y, cat, number_of_free_spaces):
         FREE_SPACES_GROUP.add(free_space)
         FREE_SPACES_LIST.append(free_space)
 
-    camera = game_element.Element('camera', [IMAGES['camera']], starting_x + total_width - 0.5 * PIXELS['cat-width'], y, 0)
+    camera = game_element.Element('camera', [IMAGES['camera']],
+                                  starting_x + total_width - 0.5 * PIXELS['cat-width'], y, 0)
     MOVING_SPRITES.add(camera)
 
 
@@ -249,6 +251,8 @@ def spawn_gate(gate, position):
     MOVING_SPRITES.add(element)
     MOVABLE_SPRITES.append(element)
 
+    return element
+
 
 def place_gate_generators(gates):
     number_of_gates = len(gates)
@@ -257,13 +261,14 @@ def place_gate_generators(gates):
 
     for i, gate in enumerate(gates):
         sprites = get_object_sprites('assets/level/gates/', gate)
-        sprites = [sprites[0]]
+        # sprites = [sprites[0]]
 
         x = starting_x + i * (PIXELS['gate-width'] + PIXELS['gate-space']) \
             + 0.5 * PIXELS['gate-width'] + PIXELS['gate-space']
 
-        element = game_element.Element(gate, sprites, x, PIXELS['gates-y'], 0)
-        ACTIVE_GATE_GENERATORS.append(element)
+        element = game_element.Element(gate, sprites, x, PIXELS['gates-y'], 0.2)
+        ACTIVE_GATE_GENERATORS_SPRITES.add(element)
+        ACTIVE_GATE_GENERATORS_LIST.append(element)
 
 
 def filter_free_spaces_by_visibility():
@@ -276,8 +281,11 @@ def filter_free_spaces_by_visibility():
 
 
 def draw_level():
-    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST
+    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
+        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST
 
+    ACTIVE_GATE_GENERATORS_SPRITES.empty()
+    ACTIVE_GATE_GENERATORS_LIST = []
     MOVING_SPRITES.empty()
     FREE_SPACES_GROUP.empty()
     FREE_SPACES_LIST.clear()
@@ -329,7 +337,7 @@ def start_game_loop():
     global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, RUNNING, CURRENT_LEVEL_WAS_DRAWN, FREE_SPACES_GROUP, FREE_SPACES_LIST
 
     init_variables()
-    play_music()
+    # play_music()
 
     while RUNNING:
 
@@ -354,6 +362,7 @@ def start_game_loop():
                 CURRENT_LEVEL_WAS_DRAWN = True
 
             MOVING_SPRITES.draw(SCREEN)
+            ACTIVE_GATE_GENERATORS_SPRITES.draw(SCREEN)
             MOVING_SPRITES.update()
 
             filter_free_spaces_by_visibility()
@@ -386,9 +395,16 @@ def start_game_loop():
                             element.free_space.attached_gate = None
                             element.free_space = None
 
-                for element in ACTIVE_GATE_GENERATORS:
+                for element in ACTIVE_GATE_GENERATORS_LIST:
                     if element.is_position_inside(position):
-                        spawn_gate(element.name, position)
+                        new_gate = spawn_gate(element.name, position)
+                        if new_gate.is_position_inside(position):
+                            new_gate.is_moving = True
+                            if new_gate.is_attached_to_free_space:
+                                new_gate.is_attached_to_free_space = False
+                                new_gate.free_space.is_visible = True
+                                new_gate.free_space.attached_gate = None
+                                new_gate.free_space = None
 
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 for element in MOVABLE_SPRITES:
@@ -402,8 +418,9 @@ def start_game_loop():
                                 is_attached = True
 
                         if not is_attached:
-                            print('deleting ', element.name)
-                            element.delete()
+                            MOVING_SPRITES.remove(element)
+                            MOVABLE_SPRITES.remove(element)
+                            element.__del__()
 
             if event.type == pygame.MOUSEBUTTONUP:
                 A_BUTTON_WAS_CLICKED = False

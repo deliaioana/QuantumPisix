@@ -60,5 +60,5 @@ class Element(pygame.sprite.Sprite):
     def center_here(self, position):
         self.rect.center = position
 
-    def delete(self):
+    def __del__(self):
         self.kill()

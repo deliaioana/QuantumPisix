@@ -42,5 +42,3 @@ class Button:
             self.active_image = self.hover_image
         else:
             self.active_image = self.image
-
-
