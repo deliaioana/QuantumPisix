@@ -142,6 +142,11 @@ def show_message(message):
     print(message)
 
 
+def restart_level():
+    show_message('Restarting the level')
+    update_current_level(CURRENT_LEVEL_NUMBER)
+
+
 def get_all_placed_gates():
     gates = []
     
