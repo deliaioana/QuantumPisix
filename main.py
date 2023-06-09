@@ -36,6 +36,7 @@ ACTIVE_SCREEN = 'menu'
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
 MOVING_SPRITES = pygame.sprite.Group()
 MOVABLE_SPRITES = []
+ACTIVE_CATS = []
 ACTIVE_GATE_GENERATORS_SPRITES = pygame.sprite.Group()
 ACTIVE_GATE_GENERATORS_LIST = []
 FREE_SPACES_GROUP = pygame.sprite.Group()
@@ -129,11 +130,57 @@ def update_current_level(x):
     ACTIVE_SCREEN = 'level_' + str(x)
 
 
+def is_circuit_completed():
+    for free_space in FREE_SPACES_LIST:
+        if free_space.is_visible:
+            return False
+    return True
+
+
+def show_message(message):
+    # in progress
+    print(message)
+
+
+def get_all_placed_gates():
+    gates = []
+    
+    for element in MOVABLE_SPRITES:
+        if element.name.startswith("SPAWNED_"):
+            gates.append(element)
+    
+    return gates
+
+
+def get_wanted_output():
+    current_level = PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER]
+    return current_level.output_info
+
+
+def get_circuit_info(gates, cats, output):
+    print('gates:\n', gates)
+    print('cats:\n', cats)
+    print('output:\n', output)
+
+    return {'gates': gates, 'cats': cats, 'output': output}
+
+
 def measure_cats():
     print('Your cats are very pretty today :)')
-    request = Request(None)
-    data = request.send_request()
-    print('response = ', data)
+
+    if not is_circuit_completed():
+        show_message('Complete the circuit first! Meow!')
+
+    else:
+        gates = get_all_placed_gates()
+        cats = ACTIVE_CATS
+        output = get_wanted_output()
+
+        circuit = get_circuit_info(gates, cats, output)
+
+        request = Request(circuit)
+        data = request.send_request()
+        print('response = ', data)
 
 
 def place_cat(cat, x, y):
@@ -145,6 +192,7 @@ def place_cat(cat, x, y):
 
     cat = felines.Cat(idle_frames, asleep_frames, super_frames, current_state, x, y)
     MOVING_SPRITES.add(cat)
+    ACTIVE_CATS.append(cat)
 
 
 def place_platform(size, y):
@@ -230,28 +278,13 @@ def get_cat_sprites(path, cat, state):
     return frames_as_list
 
 
-def place_gates(gates):
-    number_of_gates = len(gates)
-    total_width = number_of_gates * PIXELS['gate-width'] + (number_of_gates - 1) * PIXELS['gate-space']
-    starting_x = PIXELS['level-width-center'] - 0.5 * total_width
-
-    for i, gate in enumerate(gates):
-        sprites = get_object_sprites('assets/level/gates/', gate)
-
-        x = starting_x + i * (PIXELS['gate-width'] + PIXELS['gate-space']) \
-                       + 0.5 * PIXELS['gate-width'] + PIXELS['gate-space']
-
-        element = game_element.Element(gate, sprites, x, PIXELS['gates-y'], 0.2)
-        MOVING_SPRITES.add(element)
-        MOVABLE_SPRITES.append(element)
-
-
 def spawn_gate(gate, position):
     sprites = get_object_sprites('assets/level/gates/', gate)
 
     x, y = position
+    name = "SPAWNED_" + gate
 
-    element = game_element.Element(gate, sprites, x, y, 0.2)
+    element = game_element.Element(name, sprites, x, y, 0.2)
     MOVING_SPRITES.add(element)
     MOVABLE_SPRITES.append(element)
 
@@ -286,11 +319,12 @@ def filter_free_spaces_by_visibility():
 
 def draw_level():
     global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
-        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST
+        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS
 
     ACTIVE_GATE_GENERATORS_SPRITES.empty()
     ACTIVE_GATE_GENERATORS_LIST = []
     MOVING_SPRITES.empty()
+    ACTIVE_CATS = []
     FREE_SPACES_GROUP.empty()
     FREE_SPACES_LIST.clear()
     CURRENT_LEVEL_NUMBER = get_level_from_screen()
