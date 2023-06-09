@@ -5,6 +5,7 @@ from pygame import mixer
 import game_element
 import os
 import levels
+from check_request import Request
 
 
 mixer.init()
@@ -130,6 +131,9 @@ def update_current_level(x):
 
 def measure_cats():
     print('Your cats are very pretty today :)')
+    request = Request(None)
+    data = request.send_request()
+    print('response = ', data)
 
 
 def place_cat(cat, x, y):
