@@ -14,6 +14,7 @@ class Element(pygame.sprite.Sprite):
         self.rect.center = (x, y)
         self.is_moving = False
         self.clickable_area_size = 100
+        self.controlled_by = None
 
         self.is_attached_to_free_space = False
         self.free_space = None
