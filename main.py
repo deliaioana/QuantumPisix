@@ -36,6 +36,8 @@ ACTIVE_SCREEN = 'menu'
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
 MOVING_SPRITES = pygame.sprite.Group()
 MOVABLE_SPRITES = []
+CURRENT_OUTPUT = []
+CAMERAS = []
 ACTIVE_CATS = []
 ACTIVE_GATE_GENERATORS_SPRITES = pygame.sprite.Group()
 ACTIVE_GATE_GENERATORS_LIST = []
@@ -78,6 +80,16 @@ def init_variables():
     IMAGES['camera'] = pygame.image.load('assets/level/camera.png').convert_alpha()
     IMAGES['gate-zone'] = pygame.image.load('assets/level/gate_zone.png').convert_alpha()
     IMAGES['platform_1'] = pygame.image.load('assets/level/platform_1.png').convert_alpha()
+
+    IMAGES['camera_hover'] = pygame.image.load('assets/level/hover/camera_hover.png').convert_alpha()
+    IMAGES['button_hover'] = pygame.image.load('assets/level/hover/button_hover.png').convert_alpha()
+    IMAGES['box_gate_hover'] = pygame.image.load('assets/level/hover/box_gate_hover.png').convert_alpha()
+    IMAGES['cat_hover'] = pygame.image.load('assets/level/hover/cat_hover.png').convert_alpha()
+    IMAGES['catnip_gate_hover'] = pygame.image.load('assets/level/hover/catnip_gate_hover.png').convert_alpha()
+    IMAGES['milk_gate_hover'] = pygame.image.load('assets/level/hover/milk_gate_hover.png').convert_alpha()
+    IMAGES['mouse_gate_hover'] = pygame.image.load('assets/level/hover/mouse_gate_hover.png').convert_alpha()
+    IMAGES['output_hover'] = pygame.image.load('assets/level/hover/output_hover.png').convert_alpha()
+    IMAGES['cat-food_gate_hover'] = pygame.image.load('assets/level/hover/cat-food_gate_hover.png').convert_alpha()
 
     BUTTONS['play'] = button.Button(500, 300, IMAGES['play'], IMAGES['play_hover'], 1)
     BUTTONS['quit'] = button.Button(500, 400, IMAGES['quit'], IMAGES['quit_hover'], 1)
@@ -212,7 +224,12 @@ def place_common_elements():
 
     current_output_image_name = 'assets/level/outputs/level_' + str(CURRENT_LEVEL_NUMBER) + '.png'
     output_image = pygame.image.load(current_output_image_name).convert_alpha()
-    SCREEN.blit(output_image, (875, 10))
+    output_frames = [output_image]
+
+    output_element = game_element.Element('output', output_frames, 925, 75, 0)
+
+    MOVING_SPRITES.add(output_element)
+    CURRENT_OUTPUT.append(output_element)
 
 
 def place_row(y, cat, number_of_free_spaces):
@@ -236,6 +253,7 @@ def place_row(y, cat, number_of_free_spaces):
     camera = game_element.Element('camera', [IMAGES['camera']],
                                   starting_x + total_width - 0.5 * PIXELS['cat-width'], y, 0)
     MOVING_SPRITES.add(camera)
+    CAMERAS.append(camera)
 
 
 def get_level_from_screen():
@@ -303,7 +321,6 @@ def place_gate_generators(gates):
 
     for i, gate in enumerate(gates):
         sprites = get_object_sprites('assets/level/gates/', gate)
-        # sprites = [sprites[0]]
 
         x = starting_x + i * (PIXELS['gate-width'] + PIXELS['gate-space']) \
             + 0.5 * PIXELS['gate-width'] + PIXELS['gate-space']
@@ -324,12 +341,14 @@ def filter_free_spaces_by_visibility():
 
 def draw_level():
     global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
-        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS
+        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, CAMERAS
 
     ACTIVE_GATE_GENERATORS_SPRITES.empty()
     ACTIVE_GATE_GENERATORS_LIST = []
     MOVING_SPRITES.empty()
     ACTIVE_CATS = []
+    CAMERAS = []
+    CURRENT_OUTPUT = []
     FREE_SPACES_GROUP.empty()
     FREE_SPACES_LIST.clear()
     CURRENT_LEVEL_NUMBER = get_level_from_screen()
@@ -374,6 +393,41 @@ def play_music():
     mixer.music.set_volume(0.2)
     mixer.music.play(loops=-1)
     IS_MUSIC_PLAYING = True
+
+
+def get_hover_objects():
+    objects = []
+    objects.extend(ACTIVE_CATS)
+    objects.extend(ACTIVE_GATE_GENERATORS_LIST)
+    objects.extend(CURRENT_OUTPUT)
+    objects.extend(CAMERAS)
+    return objects
+
+
+def get_hover_image(element):
+    if isinstance(element, felines.Cat):
+        return IMAGES['cat_hover']
+    else:
+        name = element.name
+        if name == 'output':
+            return IMAGES['output_hover']
+        elif name == 'camera':
+            return IMAGES['camera_hover']
+        elif name in ['catnip_gate', 'cat-food_gate', 'milk_gate', 'box_gate', 'mouse_gate']:
+            image_name = name + '_hover'
+            return IMAGES[image_name]
+
+    print('not a hover object')
+
+
+def is_inside_hover_element(element, x, y):
+    return element.rect.collidepoint(x, y)
+
+
+def get_hover_image_position(x, y):
+    if x + 260 > SCREEN_WIDTH:
+        return x - 260, y
+    return x + 10, y
 
 
 def start_game_loop():
@@ -423,7 +477,7 @@ def start_game_loop():
 
         elif ACTIVE_SCREEN == 'help':
             place_centered_image(IMAGES['how_to_play_title'], 100)
-            place_centered_image(IMAGES['how_to_text'], 200)
+            place_centered_image(IMAGES['how_to_text'], 350)
             create_button_and_change_screen(BUTTONS['back'], 'options')
 
         for event in pygame.event.get():
@@ -470,6 +524,16 @@ def start_game_loop():
 
             if event.type == pygame.QUIT:
                 RUNNING = False
+
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        objects = get_hover_objects()
+
+        for element in objects:
+            if is_inside_hover_element(element, mouse_x, mouse_y):
+                hover_image = get_hover_image(element)
+                hover_image_position = get_hover_image_position(mouse_x, mouse_y)
+                SCREEN.blit(hover_image, hover_image_position)
+                break
 
         pygame.display.flip()
         CLOCK.tick(60)

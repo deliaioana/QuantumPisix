@@ -7,8 +7,8 @@ class Levels:
 
         level_1 = level.Level([('foxy', 'asleep')], ['catnip_gate'], 1, "", [1])
         level_2 = level.Level([('miso', 'idle'), ('miso', 'idle')], ['catnip_gate', 'catnip_gate'], 1, "", [1, 1])
-        level_3 = level.Level([('foxy', 'idle'), ('peanut', 'idle'), ('cookie', 'idle')], ['kiss_gate'], 1, "",
-                              [1, 1, 1])
+        level_3 = level.Level([('foxy', 'idle'), ('peanut', 'idle'), ('miso', 'asleep'), ('cookie', 'idle')],
+                              ['catnip_gate'], 1, "", [1, 1, 1])
         level_4 = level.Level([('miso', 'asleep'), ('foxy', 'asleep'), ('peanut', 'asleep'), ('cookie', 'asleep')],
                               ['catnip_gate', 'catnip_gate'], 5, "", [0, 0, 0, 0])
         level_5 = level.Level([('miso', 'idle')], ['catnip_gate'], 2, "", [1])
