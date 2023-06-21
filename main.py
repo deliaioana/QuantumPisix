@@ -306,8 +306,13 @@ def spawn_gate(gate, position):
 
     x, y = position
     name = "SPAWNED_" + gate
+    speed = 0.2
+    if gate == 'box_gate':
+        speed = 0.09
+    elif gate == 'mouse_gate':
+        speed = 0.09
 
-    element = game_element.Element(name, sprites, x, y, 0.2)
+    element = game_element.Element(name, sprites, x, y, speed)
     MOVING_SPRITES.add(element)
     MOVABLE_SPRITES.append(element)
 

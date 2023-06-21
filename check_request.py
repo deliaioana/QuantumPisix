@@ -27,7 +27,17 @@ def get_cats_states_sorted(circuit):
 
 
 def get_real_gate_name(name):
-    return 'h'
+    print("GATE NAME: ", name)
+    if name == 'SPAWNED_catnip_gate':
+        return 'h'
+    elif name == 'SPAWNED_box_gate':
+        return 'i'
+    elif name == 'SPAWNED_milk_gate':
+        return 'x'
+    elif name == 'SPAWNED_mouse_gate':
+        return 'y'
+    elif name == 'SPAWNED_cat-food_gate':
+        return 'z'
 
 
 def compute_line(size, real_names_list, controlled_list):
@@ -50,9 +60,10 @@ def get_gates_sorted(n, m, circuit):
     matrix = []
 
     for i in range(n):
-        line = [(gate.rect.center[0], get_real_gate_name(gate.name[8:]), gate)
+        line = [(gate.rect.center[0], get_real_gate_name(gate.name), gate)
                 for gate in gates if gate.rect.center[1] == current_min_height]
         sorted(line)
+        print("LINE is\n", line)
         real_names_list = list(zip(*line))[1]
         controlled_list = list(zip(*line))[2]
         controlled_list = [gate.controlled_by for gate in controlled_list]
@@ -89,6 +100,7 @@ class Request:
         self.circuit = circuit
 
     def send_request(self):
+        print("CIRCUITUL ESTE:\n", self.circuit)
         info_json = process_circuit_info(self.circuit)
         response = requests.post(url=self.url, json=info_json)
         data = response.text
