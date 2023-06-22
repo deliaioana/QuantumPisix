@@ -34,7 +34,8 @@ CURRENT_LEVEL_NUMBER = -1
 CURRENT_LEVEL_WAS_DRAWN = False
 ACTIVE_SCREEN = 'menu'
 
-LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
+LEVELS_FIRST_PAGE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+LEVELS_SECOND_PAGE = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
 UNLOCKED_LEVELS = [1]
 MOVING_SPRITES = pygame.sprite.Group()
 MOVABLE_SPRITES = []
@@ -72,6 +73,10 @@ def init_variables():
     IMAGES['menu_hover'] = pygame.image.load('assets/buttons/menu_button_hover.png').convert_alpha()
     IMAGES['sound_hover'] = pygame.image.load('assets/buttons/sound_button_hover.png').convert_alpha()
     IMAGES['check_hover'] = pygame.image.load('assets/buttons/check_button_hover.png').convert_alpha()
+    IMAGES['next_levels'] = pygame.image.load('assets/buttons/next_levels.png').convert_alpha()
+    IMAGES['next_levels_hover'] = pygame.image.load('assets/buttons/next_levels_hover.png').convert_alpha()
+    IMAGES['previous_levels'] = pygame.image.load('assets/buttons/previous_levels.png').convert_alpha()
+    IMAGES['previous_levels_hover'] = pygame.image.load('assets/buttons/previous_levels_hover.png').convert_alpha()
 
     IMAGES['menu_title'] = pygame.image.load('assets/titles/quantum_pisix_title.png').convert_alpha()
     IMAGES['levels_title'] = pygame.image.load('assets/titles/levels_title.png').convert_alpha()
@@ -80,10 +85,8 @@ def init_variables():
     IMAGES['how_to_text'] = pygame.image.load('assets/other/how_to.png').convert_alpha()
 
     IMAGES['free_space'] = pygame.image.load('assets/level/free_space_test.png').convert_alpha()
-    IMAGES['output'] = pygame.image.load('assets/level/level_1_output.png').convert_alpha()
     IMAGES['camera'] = pygame.image.load('assets/level/camera.png').convert_alpha()
     IMAGES['gate-zone'] = pygame.image.load('assets/level/gate_zone.png').convert_alpha()
-    IMAGES['platform_1'] = pygame.image.load('assets/level/platform_1.png').convert_alpha()
 
     IMAGES['camera_hover'] = pygame.image.load('assets/level/hover/camera_hover.png').convert_alpha()
     IMAGES['button_hover'] = pygame.image.load('assets/level/hover/button_hover.png').convert_alpha()
@@ -103,6 +106,9 @@ def init_variables():
     BUTTONS['back'] = button.Button(500, 600, IMAGES['back'], IMAGES['back_hover'], 1)
     BUTTONS['menu'] = button.Button(500, 500, IMAGES['menu'], IMAGES['menu_hover'], 1)
     BUTTONS['check'] = button.Button(500, 650, IMAGES['check'], IMAGES['check_hover'], 1)
+    BUTTONS['next_levels'] = button.Button(950, SCREEN_WIDTH/2, IMAGES['next_levels'], IMAGES['next_levels_hover'], 1)
+    BUTTONS['previous_levels'] = button.Button(50, SCREEN_WIDTH/2, IMAGES['previous_levels'],
+                                               IMAGES['previous_levels_hover'], 1)
 
 
 def press_sound():
@@ -121,14 +127,21 @@ def place_centered_image(img, x):
     pygame.draw.rect(SCREEN, (34, 87, 122), rect, 1)
 
 
-def place_level_buttons():
-    global ACTIVE_SCREEN, A_BUTTON_WAS_CLICKED, CURRENT_LEVEL_NUMBER, UNLOCKED_LEVELS
-    for i in range(len(LEVELS)):
+def place_level_buttons(page):
+    global UNLOCKED_LEVELS
+
+    displayed_levels = LEVELS_FIRST_PAGE
+    if page == 2:
+        displayed_levels = LEVELS_SECOND_PAGE
+
+    UNLOCKED_LEVELS.extend(displayed_levels)
+
+    for i in range(len(displayed_levels)):
         x = int(200 * (i % 4 + 1))
         y = int(200 + 100 * (i // 4 + 1))
 
-        if LEVELS[i] in UNLOCKED_LEVELS:
-            level_name = 'level_' + str(i + 1)
+        if displayed_levels[i] in UNLOCKED_LEVELS:
+            level_name = 'level_' + str(displayed_levels[i])
             img_name = 'assets/buttons/' + level_name + '.png'
             hover_img_name = 'assets/buttons/' + level_name + '_hover.png'
 
@@ -136,13 +149,13 @@ def place_level_buttons():
             level_button_hover_img = pygame.image.load(hover_img_name).convert_alpha()
 
             level_button = button.Button(x, y, level_button_img, level_button_hover_img, 1)
-            create_button_and_call_function_on_press(level_button, lambda: update_current_level(i + 1))
+            create_button_and_call_function_on_press(level_button, lambda: update_current_level(displayed_levels[i]))
 
         else:
             img_name = 'assets/buttons/locked_level.png'
             level_button_img = pygame.image.load(img_name).convert_alpha()
             level_button = button.Button(x, y, level_button_img, level_button_img, 1)
-            create_button_and_call_function_on_press(level_button, lambda: update_current_level(i + 1))
+            create_button_and_call_function_on_press(level_button, lambda: update_current_level(displayed_levels[i]))
 
 
 def update_current_level(x):
@@ -400,7 +413,7 @@ def filter_free_spaces_by_visibility():
 
 
 def draw_level():
-    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
+    global CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
         ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, CAMERAS
 
     empty_level_objects()
@@ -428,7 +441,7 @@ def create_button_and_call_function_on_press(button_name, func):
 
 
 def empty_level_objects():
-    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
+    global CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
         ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, \
         CAMERAS, PLATFORMS_GROUP, PLATFORMS_LIST
 
@@ -518,13 +531,20 @@ def start_game_loop():
 
         if ACTIVE_SCREEN == 'menu':
             place_centered_image(IMAGES['menu_title'], 200)
-            create_button_and_change_screen(BUTTONS['play'], 'levels')
+            create_button_and_change_screen(BUTTONS['play'], 'levels_1')
             create_button_and_call_function_on_press(BUTTONS['quit'], quit_main_loop)
 
-        elif ACTIVE_SCREEN == 'levels':
+        elif ACTIVE_SCREEN == 'levels_1':
             place_centered_image(IMAGES['levels_title'], 100)
-            place_level_buttons()
+            place_level_buttons(1)
             create_button_and_change_screen(BUTTONS['back'], 'menu')
+            create_button_and_change_screen(BUTTONS['next_levels'], 'levels_2')
+
+        elif ACTIVE_SCREEN == 'levels_2':
+            place_centered_image(IMAGES['levels_title'], 100)
+            place_level_buttons(2)
+            create_button_and_change_screen(BUTTONS['back'], 'menu')
+            create_button_and_change_screen(BUTTONS['previous_levels'], 'levels_1')
 
         elif ACTIVE_SCREEN.startswith('level_'):
             SCREEN.blit(IMAGES['level_bg'], (0, 0))
