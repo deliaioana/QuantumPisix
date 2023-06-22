@@ -48,6 +48,9 @@ FREE_SPACES_LIST = []
 PLAYABLE_LEVELS = levels.Levels()
 PLATFORMS_GROUP = pygame.sprite.Group()
 PLATFORMS_LIST = []
+RESPONSE_DATA = ''
+LEVEL_VERDICT = None
+MEASURED_OUTPUT = ''
 
 CURRENT_CONTROL_INFO = {'in_progress': False, 'controlled_object': None, 'controlling_object': None,
                         'controlling_row': 0, 'controlled_row': 0,
@@ -106,6 +109,7 @@ def init_variables():
     IMAGES['output_hover'] = pygame.image.load('assets/level/hover/output_hover.png').convert_alpha()
     IMAGES['cat-food_gate_hover'] = pygame.image.load('assets/level/hover/cat-food_gate_hover.png').convert_alpha()
     IMAGES['control_hover'] = pygame.image.load('assets/level/hover/control_hover.png').convert_alpha()
+    IMAGES['flash'] = pygame.image.load('assets/level/flash.png').convert_alpha()
 
     BUTTONS['play'] = button.Button(500, 300, IMAGES['play'], IMAGES['play_hover'], 1)
     BUTTONS['quit'] = button.Button(500, 400, IMAGES['quit'], IMAGES['quit_hover'], 1)
@@ -142,8 +146,6 @@ def place_level_buttons(page):
     displayed_levels = LEVELS_FIRST_PAGE
     if page == 2:
         displayed_levels = LEVELS_SECOND_PAGE
-
-    UNLOCKED_LEVELS.extend(displayed_levels)
 
     for i in range(len(displayed_levels)):
         x = int(200 * (i % 4 + 1))
@@ -184,20 +186,20 @@ def is_circuit_completed():
 
 
 def show_message(message):
-    popup_font = pygame.font.Font(None, 40)  # Adjust the font size as needed
-    popup_text = popup_font.render(message, True, (0, 0, 0))  # Text color: white
+    popup_font = pygame.font.Font(None, 40)
+    popup_text = popup_font.render(message, True, (0, 0, 0))
 
-    popup_width = popup_text.get_width() + 20  # Add padding to the width
-    popup_height = popup_text.get_height() + 20  # Add padding to the height
+    popup_width = popup_text.get_width() + 20
+    popup_height = popup_text.get_height() + 20
 
     popup_surface = pygame.Surface((popup_width, popup_height))
-    popup_surface.fill((199, 249, 204))  # Popup background color: black
+    popup_surface.fill((199, 249, 204))
 
     popup_rect = popup_surface.get_rect()
-    popup_rect.center = (SCREEN.get_width() // 2, SCREEN.get_height() // 2)  # Position the popup in the center
+    popup_rect.center = (SCREEN.get_width() // 2, SCREEN.get_height() // 2)
 
     SCREEN.blit(popup_surface, popup_rect)
-    SCREEN.blit(popup_text, (popup_rect.x + 10, popup_rect.y + 10))  # Position the text within the popup
+    SCREEN.blit(popup_text, (popup_rect.x + 10, popup_rect.y + 10))
 
     pygame.display.update()
     pygame.time.delay(int(2 * 1000))
@@ -225,10 +227,6 @@ def get_wanted_output():
 
 
 def get_circuit_info(gates, cats, output):
-    print('gates:\n', gates)
-    print('cats:\n', cats)
-    print('output:\n', output)
-
     return {'gates': gates, 'cats': cats, 'output': output}
 
 
@@ -246,15 +244,41 @@ def lose_level():
     restart_level()
 
 
-def simulate_circuit():
-    global SIMULATING
+def simulate_circuit(data):
+    global SIMULATING, RESPONSE_DATA, MEASURED_OUTPUT
     SIMULATING = True
-    # in progress
+    RESPONSE_DATA = data
+    MEASURED_OUTPUT = max(RESPONSE_DATA, key=RESPONSE_DATA.get)
+    MEASURED_OUTPUT = MEASURED_OUTPUT[::-1]
+    print('measured: ', MEASURED_OUTPUT)
+
+
+def is_correct_answer(real_output, output_info):
+    target_output = ''.join([str(c) for c in output_info])
+
+    for state in real_output:
+        state = state[::-1]
+        for i, q in enumerate(state):
+            print('qubit: ', q, ', target: ', target_output[i])
+            if target_output[i] != q:
+                if target_output[i] in ['0', '1']:
+                    return False
+
+                if target_output[i] == 3:
+                    index_q2 = target_output.index('2')
+                    if state[index_q2] != q:
+                        return False
+
+    return True
 
 
 def handle_check_response(data):
-    simulate_circuit()
-    lose_level()
+    global LEVEL_VERDICT
+    simulate_circuit(data)
+    level_verdict = is_correct_answer(data, PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER].output_info)
+    print('level verdict: ', level_verdict)
+
+    LEVEL_VERDICT = level_verdict
 
 
 def measure_cats():
@@ -453,7 +477,8 @@ def create_button_and_call_function_on_press(button_name, func):
 def empty_level_objects():
     global CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
         ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, \
-        CAMERAS, PLATFORMS_GROUP, PLATFORMS_LIST, MOVABLE_SPRITES
+        CAMERAS, PLATFORMS_GROUP, PLATFORMS_LIST, MOVABLE_SPRITES, RESPONSE_DATA, SIMULATING, LEVEL_VERDICT, \
+        MEASURED_OUTPUT
 
     ACTIVE_GATE_GENERATORS_SPRITES.empty()
     ACTIVE_GATE_GENERATORS_LIST = []
@@ -467,13 +492,18 @@ def empty_level_objects():
     PLATFORMS_GROUP.empty()
     PLATFORMS_LIST.clear()
     MOVABLE_SPRITES = []
+    RESPONSE_DATA = ''
+    SIMULATING = False
+    LEVEL_VERDICT = None
+    MEASURED_OUTPUT = ''
 
 
 def create_button_and_change_screen(button_name, new_screen):
-    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN
+    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN, SIMULATING
 
     if button_name.draw(SCREEN) and not A_BUTTON_WAS_CLICKED:
         refresh_current_control_info()
+        SIMULATING = False
         if ACTIVE_SCREEN.startswith('level_'):
             empty_level_objects()
         elif ACTIVE_SCREEN == 'options' and new_screen.startswith('level_'):
@@ -564,7 +594,6 @@ def place_control_object(controlled_row, controlling_row, controlled_pos, contro
 
 def handle_placed_control():
     show_message('You have successfully used a control gate!')
-    print('in handle')
     print(CURRENT_CONTROL_INFO)
 
     controlled_row = CURRENT_CONTROL_INFO['controlled_row']
@@ -574,16 +603,16 @@ def handle_placed_control():
     controlling_position = CURRENT_CONTROL_INFO['controlling_pos_x'], CURRENT_CONTROL_INFO['controlling_pos_y']
 
     CURRENT_CONTROL_INFO['controlled_object'].controlled_by = controlling_row - 1
-    print('row ', controlled_row, 'controlled by', controlling_row)
     place_control_object(controlled_row, controlling_row, controlled_position,
                          controlling_position)
 
 
 def start_game_loop():
-    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, RUNNING, CURRENT_LEVEL_WAS_DRAWN, FREE_SPACES_GROUP, FREE_SPACES_LIST
+    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, RUNNING, CURRENT_LEVEL_WAS_DRAWN, FREE_SPACES_GROUP, \
+        FREE_SPACES_LIST, SIMULATING
 
     init_variables()
-    # play_music()
+    play_music()
 
     while RUNNING:
 
@@ -640,73 +669,99 @@ def start_game_loop():
             place_centered_image(IMAGES['how_to_text'], 350)
             create_button_and_change_screen(BUTTONS['back'], 'options')
 
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                position = pygame.mouse.get_pos()
+        if not SIMULATING:
+
+            if LEVEL_VERDICT is not None:
+                if LEVEL_VERDICT:
+                    win_level()
+                else:
+                    lose_level()
+
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    position = pygame.mouse.get_pos()
+                    for element in MOVABLE_SPRITES:
+                        if element.is_position_inside(position):
+                            element.is_moving = True
+                            if element.is_attached_to_free_space:
+                                element.is_attached_to_free_space = False
+                                element.free_space.is_visible = True
+                                element.free_space.attached_gate = None
+                                element.free_space = None
+
+                    for element in ACTIVE_GATE_GENERATORS_LIST:
+                        if element.is_position_inside(position):
+                            if element.name == 'control':
+                                handle_control_gate_click()
+                            else:
+                                new_gate = spawn_gate(element.name, position)
+                                if new_gate.is_position_inside(position):
+                                    new_gate.is_moving = True
+                                    if new_gate.is_attached_to_free_space:
+                                        new_gate.is_attached_to_free_space = False
+                                        new_gate.free_space.is_visible = True
+                                        new_gate.free_space.attached_gate = None
+                                        new_gate.free_space = None
+
+                if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    for element in MOVABLE_SPRITES:
+                        if element.is_moving:
+                            element.is_moving = False
+                            is_attached = False
+
+                            for free_space in FREE_SPACES_LIST:
+                                if element.is_inside_free_space(free_space):
+                                    free_space.attach_gate(element)
+                                    is_attached = True
+
+                                    if CURRENT_CONTROL_INFO['in_progress'] and \
+                                            CURRENT_CONTROL_INFO['controlled_object'] is None:
+                                        CURRENT_CONTROL_INFO['controlled_object'] = element
+                                        CURRENT_CONTROL_INFO['controlled_row'] = free_space.get_row()
+
+                                        CURRENT_CONTROL_INFO['controlled_pos_x'], \
+                                            CURRENT_CONTROL_INFO['controlled_pos_y'] = free_space.get_pos()
+                                        show_message('Now click on the controlled object in the same column.')
+
+                                    elif CURRENT_CONTROL_INFO['in_progress'] and \
+                                            CURRENT_CONTROL_INFO['controlling_object'] is None:
+                                        CURRENT_CONTROL_INFO['controlling_object'] = element
+                                        CURRENT_CONTROL_INFO['controlling_row'] = free_space.get_row()
+
+                                        CURRENT_CONTROL_INFO['controlling_pos_x'], \
+                                            CURRENT_CONTROL_INFO['controlling_pos_y'] = free_space.get_pos()
+
+                                        handle_placed_control()
+                                        refresh_current_control_info()
+
+                            if not is_attached:
+                                MOVING_SPRITES.remove(element)
+                                MOVABLE_SPRITES.remove(element)
+                                element.__del__()
+
+                if event.type == pygame.MOUSEBUTTONUP:
+                    A_BUTTON_WAS_CLICKED = False
+
+                if event.type == pygame.QUIT:
+                    RUNNING = False
+
+        else:
+            PLATFORMS_GROUP.update()
+            MOVING_SPRITES.update()
+
+            for cat in ACTIVE_CATS:
+                cat.move_in_circuit()
+
                 for element in MOVABLE_SPRITES:
-                    if element.is_position_inside(position):
-                        element.is_moving = True
-                        if element.is_attached_to_free_space:
-                            element.is_attached_to_free_space = False
-                            element.free_space.is_visible = True
-                            element.free_space.attached_gate = None
-                            element.free_space = None
+                    if cat.is_next_to_element(element):
+                        MOVING_SPRITES.remove(element)
+                        MOVABLE_SPRITES.remove(element)
+                        cat.change_state(element.name)
 
-                for element in ACTIVE_GATE_GENERATORS_LIST:
-                    if element.is_position_inside(position):
-                        if element.name == 'control':
-                            handle_control_gate_click()
-                        else:
-                            new_gate = spawn_gate(element.name, position)
-                            if new_gate.is_position_inside(position):
-                                new_gate.is_moving = True
-                                if new_gate.is_attached_to_free_space:
-                                    new_gate.is_attached_to_free_space = False
-                                    new_gate.free_space.is_visible = True
-                                    new_gate.free_space.attached_gate = None
-                                    new_gate.free_space = None
-
-            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                for element in MOVABLE_SPRITES:
-                    if element.is_moving:
-                        element.is_moving = False
-                        is_attached = False
-
-                        for free_space in FREE_SPACES_LIST:
-                            if element.is_inside_free_space(free_space):
-                                free_space.attach_gate(element)
-                                is_attached = True
-
-                                if CURRENT_CONTROL_INFO['in_progress'] and \
-                                        CURRENT_CONTROL_INFO['controlled_object'] is None:
-                                    CURRENT_CONTROL_INFO['controlled_object'] = element
-                                    CURRENT_CONTROL_INFO['controlled_row'] = free_space.get_row()
-
-                                    CURRENT_CONTROL_INFO['controlled_pos_x'], \
-                                        CURRENT_CONTROL_INFO['controlled_pos_y'] = free_space.get_pos()
-                                    show_message('Now click on the controlled object in the same column.')
-
-                                elif CURRENT_CONTROL_INFO['in_progress'] and \
-                                        CURRENT_CONTROL_INFO['controlling_object'] is None:
-                                    CURRENT_CONTROL_INFO['controlling_object'] = element
-                                    CURRENT_CONTROL_INFO['controlling_row'] = free_space.get_row()
-
-                                    CURRENT_CONTROL_INFO['controlling_pos_x'], \
-                                        CURRENT_CONTROL_INFO['controlling_pos_y'] = free_space.get_pos()
-
-                                    handle_placed_control()
-                                    refresh_current_control_info()
-
-                        if not is_attached:
-                            MOVING_SPRITES.remove(element)
-                            MOVABLE_SPRITES.remove(element)
-                            element.__del__()
-
-            if event.type == pygame.MOUSEBUTTONUP:
-                A_BUTTON_WAS_CLICKED = False
-
-            if event.type == pygame.QUIT:
-                RUNNING = False
+                if cat.is_next_to_camera(CAMERAS[0].get_pos()[0]):
+                    cat.collapse_state(int(MEASURED_OUTPUT[ACTIVE_CATS.index(cat)]))
+                    pygame.time.delay(int(2 * 1000))
+                    SIMULATING = False
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
         objects = get_hover_objects()
