@@ -2,7 +2,7 @@ import pygame
 
 
 class Element(pygame.sprite.Sprite):
-    def __init__(self, name, frames, x, y, speed):
+    def __init__(self, name, frames, x, y, speed, row=-1, col=-1):
         super().__init__()
         self.name = name
         self.sprites = []
@@ -15,6 +15,8 @@ class Element(pygame.sprite.Sprite):
         self.is_moving = False
         self.clickable_area_size = 100
         self.controlled_by = None
+        self.row = row
+        self.col = col
 
         self.is_attached_to_free_space = False
         self.free_space = None
@@ -60,6 +62,12 @@ class Element(pygame.sprite.Sprite):
 
     def center_here(self, position):
         self.rect.center = position
+
+    def get_row(self):
+        return self.row
+
+    def get_pos(self):
+        return self.rect.center
 
     def __del__(self):
         self.kill()
