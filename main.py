@@ -1,5 +1,3 @@
-import random
-
 import pygame
 import button
 import cat as felines
@@ -30,6 +28,7 @@ IMAGES = {}
 BUTTONS = {}
 
 RUNNING = True
+SIMULATING = False
 A_BUTTON_WAS_CLICKED = False
 CURRENT_LEVEL_NUMBER = -1
 CURRENT_LEVEL_WAS_DRAWN = False
@@ -47,6 +46,8 @@ ACTIVE_GATE_GENERATORS_LIST = []
 FREE_SPACES_GROUP = pygame.sprite.Group()
 FREE_SPACES_LIST = []
 PLAYABLE_LEVELS = levels.Levels()
+PLATFORMS_GROUP = pygame.sprite.Group()
+PLATFORMS_LIST = []
 
 
 def init_variables():
@@ -221,7 +222,14 @@ def lose_level():
     restart_level()
 
 
+def simulate_circuit():
+    global SIMULATING
+    SIMULATING = True
+    # in progress
+
+
 def handle_check_response(data):
+    simulate_circuit()
     lose_level()
 
 
@@ -255,8 +263,13 @@ def place_cat(cat, x, y):
 
 
 def place_platform(size, y):
-    platform = game_element.Element('platform', [IMAGES['platform_1']], PIXELS['level-width-center'], y + 40, 0)
-    MOVING_SPRITES.add(platform)
+    path = 'assets/level/platforms/'
+    object_name = 'platform_' + str(size)
+    platform_images = get_object_sprites(path, object_name)
+    platform = game_element.Element('platform', platform_images, PIXELS['level-width-center'], y + 40, 0.2)
+
+    PLATFORMS_GROUP.add(platform)
+    PLATFORMS_LIST.append(platform)
 
 
 def place_common_elements():
@@ -268,7 +281,7 @@ def place_common_elements():
     output_image = pygame.image.load(current_output_image_name).convert_alpha()
     output_frames = [output_image]
 
-    output_element = game_element.Element('output', output_frames, 925, 75, 0)
+    output_element = game_element.Element('output', output_frames, 925, SCREEN_HEIGHT/2, 0)
 
     MOVING_SPRITES.add(output_element)
     CURRENT_OUTPUT.append(output_element)
@@ -280,8 +293,8 @@ def place_row(y, cat, number_of_free_spaces):
                   + PIXELS['cat-width'] * 2
     starting_x = PIXELS['level-width-center'] - 0.5 * total_width
 
-    if number_of_free_spaces == 1:
-        place_platform(1, y)
+    if number_of_free_spaces in [1, 2, 3, 4]:
+        place_platform(number_of_free_spaces, y)
 
     place_cat(cat, starting_x + 0.5 * PIXELS['cat-width'], y)
 
@@ -416,7 +429,8 @@ def create_button_and_call_function_on_press(button_name, func):
 
 def empty_level_objects():
     global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
-        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, CAMERAS
+        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, \
+        CAMERAS, PLATFORMS_GROUP, PLATFORMS_LIST
 
     ACTIVE_GATE_GENERATORS_SPRITES.empty()
     ACTIVE_GATE_GENERATORS_LIST = []
@@ -427,6 +441,8 @@ def empty_level_objects():
     FREE_SPACES_GROUP.empty()
     FREE_SPACES_LIST.clear()
     CURRENT_LEVEL_NUMBER = get_level_from_screen()
+    PLATFORMS_GROUP.empty()
+    PLATFORMS_LIST.clear()
 
 
 def create_button_and_change_screen(button_name, new_screen):
@@ -517,9 +533,13 @@ def start_game_loop():
                 draw_level()
                 CURRENT_LEVEL_WAS_DRAWN = True
 
+            PLATFORMS_GROUP.draw(SCREEN)
             MOVING_SPRITES.draw(SCREEN)
             ACTIVE_GATE_GENERATORS_SPRITES.draw(SCREEN)
             MOVING_SPRITES.update()
+
+            if SIMULATING:
+                PLATFORMS_GROUP.update()
 
             filter_free_spaces_by_visibility()
             FREE_SPACES_GROUP.draw(SCREEN)
