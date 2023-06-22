@@ -1,3 +1,5 @@
+import random
+
 import pygame
 import button
 import cat as felines
@@ -29,11 +31,12 @@ BUTTONS = {}
 
 RUNNING = True
 A_BUTTON_WAS_CLICKED = False
-CURRENT_LEVEL_NUMBER = None
+CURRENT_LEVEL_NUMBER = -1
 CURRENT_LEVEL_WAS_DRAWN = False
 ACTIVE_SCREEN = 'menu'
 
 LEVELS = [1, 2, 3, 4, 5, 6, 7, 8]
+UNLOCKED_LEVELS = [1]
 MOVING_SPRITES = pygame.sprite.Group()
 MOVABLE_SPRITES = []
 CURRENT_OUTPUT = []
@@ -118,28 +121,36 @@ def place_centered_image(img, x):
 
 
 def place_level_buttons():
-    global ACTIVE_SCREEN, A_BUTTON_WAS_CLICKED, CURRENT_LEVEL_NUMBER
+    global ACTIVE_SCREEN, A_BUTTON_WAS_CLICKED, CURRENT_LEVEL_NUMBER, UNLOCKED_LEVELS
     for i in range(len(LEVELS)):
         x = int(200 * (i % 4 + 1))
         y = int(200 + 100 * (i // 4 + 1))
 
-        level_name = 'level_' + str(i+1)
-        img_name = 'assets/buttons/' + level_name + '.png'
-        hover_img_name = 'assets/buttons/' + level_name + '_hover.png'
+        if LEVELS[i] in UNLOCKED_LEVELS:
+            level_name = 'level_' + str(i + 1)
+            img_name = 'assets/buttons/' + level_name + '.png'
+            hover_img_name = 'assets/buttons/' + level_name + '_hover.png'
 
-        level_button_img = pygame.image.load(img_name).convert_alpha()
-        level_button_hover_img = pygame.image.load(hover_img_name).convert_alpha()
+            level_button_img = pygame.image.load(img_name).convert_alpha()
+            level_button_hover_img = pygame.image.load(hover_img_name).convert_alpha()
 
-        level_button = button.Button(x, y, level_button_img, level_button_hover_img, 1)
-        create_button_and_call_function_on_press(level_button, lambda: update_current_level(i+1))
+            level_button = button.Button(x, y, level_button_img, level_button_hover_img, 1)
+            create_button_and_call_function_on_press(level_button, lambda: update_current_level(i + 1))
+
+        else:
+            img_name = 'assets/buttons/locked_level.png'
+            level_button_img = pygame.image.load(img_name).convert_alpha()
+            level_button = button.Button(x, y, level_button_img, level_button_img, 1)
+            create_button_and_call_function_on_press(level_button, lambda: update_current_level(i + 1))
 
 
 def update_current_level(x):
-    global CURRENT_LEVEL_NUMBER, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN
+    global CURRENT_LEVEL_NUMBER, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN, UNLOCKED_LEVELS
 
-    CURRENT_LEVEL_WAS_DRAWN = False
-    CURRENT_LEVEL_NUMBER = x
-    ACTIVE_SCREEN = 'level_' + str(x)
+    if x in UNLOCKED_LEVELS:
+        CURRENT_LEVEL_WAS_DRAWN = False
+        CURRENT_LEVEL_NUMBER = x
+        ACTIVE_SCREEN = 'level_' + str(x)
 
 
 def is_circuit_completed():
@@ -150,12 +161,26 @@ def is_circuit_completed():
 
 
 def show_message(message):
-    # in progress
-    print(message)
+    popup_font = pygame.font.Font(None, 40)  # Adjust the font size as needed
+    popup_text = popup_font.render(message, True, (0, 0, 0))  # Text color: white
+
+    popup_width = popup_text.get_width() + 20  # Add padding to the width
+    popup_height = popup_text.get_height() + 20  # Add padding to the height
+
+    popup_surface = pygame.Surface((popup_width, popup_height))
+    popup_surface.fill((199, 249, 204))  # Popup background color: black
+
+    popup_rect = popup_surface.get_rect()
+    popup_rect.center = (SCREEN.get_width() // 2, SCREEN.get_height() // 2)  # Position the popup in the center
+
+    SCREEN.blit(popup_surface, popup_rect)
+    SCREEN.blit(popup_text, (popup_rect.x + 10, popup_rect.y + 10))  # Position the text within the popup
+
+    pygame.display.update()
+    pygame.time.delay(int(3 * 1000))
 
 
 def restart_level():
-    show_message('Restarting the level')
     update_current_level(CURRENT_LEVEL_NUMBER)
 
 
@@ -182,9 +207,25 @@ def get_circuit_info(gates, cats, output):
     return {'gates': gates, 'cats': cats, 'output': output}
 
 
-def measure_cats():
-    print('Your cats are very pretty today :)')
+def win_level():
+    global CURRENT_LEVEL_NUMBER
 
+    current_level = CURRENT_LEVEL_NUMBER
+    UNLOCKED_LEVELS.append(current_level + 1)
+    show_message('Great job! Loading the next level...')
+    update_current_level(current_level + 1)
+
+
+def lose_level():
+    show_message('Incorrect output! Let\'s try again!')
+    restart_level()
+
+
+def handle_check_response(data):
+    lose_level()
+
+
+def measure_cats():
     if not is_circuit_completed():
         show_message('Complete the circuit first! Meow!')
 
@@ -198,6 +239,7 @@ def measure_cats():
         request = Request(circuit)
         data = request.send_request()
         print('response = ', data)
+        handle_check_response(data)
 
 
 def place_cat(cat, x, y):
@@ -348,15 +390,7 @@ def draw_level():
     global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
         ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, CAMERAS
 
-    ACTIVE_GATE_GENERATORS_SPRITES.empty()
-    ACTIVE_GATE_GENERATORS_LIST = []
-    MOVING_SPRITES.empty()
-    ACTIVE_CATS = []
-    CAMERAS = []
-    CURRENT_OUTPUT = []
-    FREE_SPACES_GROUP.empty()
-    FREE_SPACES_LIST.clear()
-    CURRENT_LEVEL_NUMBER = get_level_from_screen()
+    empty_level_objects()
 
     current_level = PLAYABLE_LEVELS.get_levels()[CURRENT_LEVEL_NUMBER]
 
@@ -380,9 +414,29 @@ def create_button_and_call_function_on_press(button_name, func):
         func()
 
 
+def empty_level_objects():
+    global LEVELS, CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
+        ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, CAMERAS
+
+    ACTIVE_GATE_GENERATORS_SPRITES.empty()
+    ACTIVE_GATE_GENERATORS_LIST = []
+    MOVING_SPRITES.empty()
+    ACTIVE_CATS = []
+    CAMERAS = []
+    CURRENT_OUTPUT = []
+    FREE_SPACES_GROUP.empty()
+    FREE_SPACES_LIST.clear()
+    CURRENT_LEVEL_NUMBER = get_level_from_screen()
+
+
 def create_button_and_change_screen(button_name, new_screen):
-    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN
+    global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN
+
     if button_name.draw(SCREEN) and not A_BUTTON_WAS_CLICKED:
+        if ACTIVE_SCREEN.startswith('level_'):
+            empty_level_objects()
+        elif ACTIVE_SCREEN == 'options' and new_screen.startswith('level_'):
+            CURRENT_LEVEL_WAS_DRAWN = False
         A_BUTTON_WAS_CLICKED = True
         ACTIVE_SCREEN = new_screen
 
