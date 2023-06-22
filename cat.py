@@ -8,9 +8,11 @@ class Cat(pygame.sprite.Sprite):
         self.state = state
         self.current_sprite = 0
         self.image = self.sprites[self.state][self.current_sprite]
-        self.speed = 0.02
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.speed = 0.02
+        if self.state == 'super':
+            self.speed = 1
 
     def update(self):
         self.current_sprite += self.speed
