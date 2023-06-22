@@ -21,13 +21,11 @@ def get_cats_states_sorted(circuit):
     cats_states = convert_cats_states(cats_states)
 
     cats_states = ''.join([str(state) for state in cats_states])
-    print('cats_states: ', cats_states)
 
     return cats_states
 
 
 def get_real_gate_name(name):
-    print("GATE NAME: ", name)
     if name == 'SPAWNED_catnip_gate':
         return 'h'
     elif name == 'SPAWNED_box_gate':
@@ -62,14 +60,11 @@ def get_gates_sorted(n, m, circuit):
     for i in range(n):
         line = [(gate.rect.center[0], get_real_gate_name(gate.name), gate)
                 for gate in gates if gate.rect.center[1] == current_min_height]
-        print('line is ', line)
         sorted(line)
         line = sorted(line, key=lambda x: x[0])
-        print("LINE is\n", line)
         real_names_list = list(zip(*line))[1]
         controlled_list = list(zip(*line))[2]
         controlled_list = [gate.controlled_by for gate in controlled_list]
-        print('controlled list: ', controlled_list)
         line = compute_line(m, real_names_list, controlled_list, i)
         matrix.append(line)
 
@@ -91,7 +86,6 @@ def process_circuit_info(circuit):
 
     circuit = {'n': n, 'm': m, 'gates': gates_matrix, 'cats': cats_states, 'output': output}
 
-    print('TO JSON\n', circuit)
     circuit_json = json.dumps(circuit)
     return circuit_json
 
@@ -103,8 +97,8 @@ class Request:
         self.circuit = circuit
 
     def send_request(self):
-        print("CIRCUITUL ESTE:\n", self.circuit)
         info_json = process_circuit_info(self.circuit)
         response = requests.post(url=self.url, json=info_json)
         data = response.text
+        data = json.loads(data)
         return data

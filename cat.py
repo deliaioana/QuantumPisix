@@ -20,3 +20,42 @@ class Cat(pygame.sprite.Sprite):
             self.current_sprite = 0
 
         self.image = self.sprites[self.state][int(self.current_sprite)]
+
+    def move_in_circuit(self):
+        self.rect.center = (self.rect.center[0] + 5, self.rect.center[1])
+
+    def is_next_to_camera(self, pos_x):
+        return self.rect.center[0] + 100 >= pos_x
+
+    def change_state(self, gate_name):
+        if gate_name == 'SPAWNED_catnip_gate':
+            self.state = 'super'
+            self.speed = 1
+
+        elif gate_name == 'SPAWNED_milk_gate':
+            if self.state == 'asleep':
+                self.state = 'idle'
+                self.speed = 0.02
+
+            elif self.state == 'idle':
+                self.state = 'asleep'
+                self.speed = 0.02
+
+        elif gate_name == 'SPAWNED_mouse_gate':
+            if self.state == 'asleep':
+                self.state = 'idle'
+                self.speed = 0.02
+            elif self.state == 'idle':
+                self.state = 'asleep'
+                self.speed = 0.02
+
+    def is_next_to_element(self, element):
+        pos_x = element.rect.center[0]
+        return abs(pos_x - self.rect.center[0]) < 20
+
+    def collapse_state(self, state):
+        if state == 1:
+            self.state = 'idle'
+        else:
+            self.state = 'asleep'
+        self.update()
