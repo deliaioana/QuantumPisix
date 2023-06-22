@@ -7,7 +7,6 @@ import os
 import levels
 from check_request import Request
 
-
 mixer.init()
 IS_MUSIC_PLAYING = False
 
@@ -49,6 +48,15 @@ FREE_SPACES_LIST = []
 PLAYABLE_LEVELS = levels.Levels()
 PLATFORMS_GROUP = pygame.sprite.Group()
 PLATFORMS_LIST = []
+
+CURRENT_CONTROL_INFO = {'in_progress': False, 'controlled_object': None, 'controlling_object': None,
+                        'controlling_row': 0, 'controlled_row': 0,
+                        'controlled_pos_x': 0, 'controlled_pos_y': 0, 'controlling_pos_x': 0, 'controlling_pos_y': 0}
+
+
+def refresh_current_control_info():
+    global CURRENT_CONTROL_INFO
+    CURRENT_CONTROL_INFO = {'in_progress': False, 'controlled_object': None, 'controlling_object': None}
 
 
 def init_variables():
@@ -97,6 +105,7 @@ def init_variables():
     IMAGES['mouse_gate_hover'] = pygame.image.load('assets/level/hover/mouse_gate_hover.png').convert_alpha()
     IMAGES['output_hover'] = pygame.image.load('assets/level/hover/output_hover.png').convert_alpha()
     IMAGES['cat-food_gate_hover'] = pygame.image.load('assets/level/hover/cat-food_gate_hover.png').convert_alpha()
+    IMAGES['control_hover'] = pygame.image.load('assets/level/hover/control_hover.png').convert_alpha()
 
     BUTTONS['play'] = button.Button(500, 300, IMAGES['play'], IMAGES['play_hover'], 1)
     BUTTONS['quit'] = button.Button(500, 400, IMAGES['quit'], IMAGES['quit_hover'], 1)
@@ -106,8 +115,8 @@ def init_variables():
     BUTTONS['back'] = button.Button(500, 600, IMAGES['back'], IMAGES['back_hover'], 1)
     BUTTONS['menu'] = button.Button(500, 500, IMAGES['menu'], IMAGES['menu_hover'], 1)
     BUTTONS['check'] = button.Button(500, 650, IMAGES['check'], IMAGES['check_hover'], 1)
-    BUTTONS['next_levels'] = button.Button(950, SCREEN_WIDTH/2, IMAGES['next_levels'], IMAGES['next_levels_hover'], 1)
-    BUTTONS['previous_levels'] = button.Button(50, SCREEN_WIDTH/2, IMAGES['previous_levels'],
+    BUTTONS['next_levels'] = button.Button(950, SCREEN_WIDTH / 2, IMAGES['next_levels'], IMAGES['next_levels_hover'], 1)
+    BUTTONS['previous_levels'] = button.Button(50, SCREEN_WIDTH / 2, IMAGES['previous_levels'],
                                                IMAGES['previous_levels_hover'], 1)
 
 
@@ -191,20 +200,22 @@ def show_message(message):
     SCREEN.blit(popup_text, (popup_rect.x + 10, popup_rect.y + 10))  # Position the text within the popup
 
     pygame.display.update()
-    pygame.time.delay(int(3 * 1000))
+    pygame.time.delay(int(2 * 1000))
 
 
 def restart_level():
+    refresh_current_control_info()
+    empty_level_objects()
     update_current_level(CURRENT_LEVEL_NUMBER)
 
 
 def get_all_placed_gates():
     gates = []
-    
+
     for element in MOVABLE_SPRITES:
         if element.name.startswith("SPAWNED_"):
             gates.append(element)
-    
+
     return gates
 
 
@@ -294,14 +305,13 @@ def place_common_elements():
     output_image = pygame.image.load(current_output_image_name).convert_alpha()
     output_frames = [output_image]
 
-    output_element = game_element.Element('output', output_frames, 925, SCREEN_HEIGHT/2, 0)
+    output_element = game_element.Element('output', output_frames, 925, SCREEN_HEIGHT / 2, 0)
 
     MOVING_SPRITES.add(output_element)
     CURRENT_OUTPUT.append(output_element)
 
 
-def place_row(y, cat, number_of_free_spaces):
-
+def place_row(row_number, y, cat, number_of_free_spaces):
     total_width = number_of_free_spaces * PIXELS['gate-width'] + (number_of_free_spaces + 1) * PIXELS['col-space'] \
                   + PIXELS['cat-width'] * 2
     starting_x = PIXELS['level-width-center'] - 0.5 * total_width
@@ -314,7 +324,7 @@ def place_row(y, cat, number_of_free_spaces):
     for i in range(number_of_free_spaces):
         free_space_x = starting_x + PIXELS['cat-width'] + i * (PIXELS['gate-width'] + PIXELS['col-space']) \
                        + 0.5 * PIXELS['gate-width'] + PIXELS['col-space']
-        free_space = game_element.Element('free_space', [IMAGES['free_space']], free_space_x, y, 0)
+        free_space = game_element.Element('free_space', [IMAGES['free_space']], free_space_x, y, 0, row_number, i + 1)
         FREE_SPACES_GROUP.add(free_space)
         FREE_SPACES_LIST.append(free_space)
 
@@ -427,7 +437,7 @@ def draw_level():
     for i in range(number_of_cats):
         y = starting_y + i * (PIXELS['row-height'] + PIXELS['row-space']) + PIXELS['row-space'] \
             + 0.5 * PIXELS['row-height']
-        place_row(y, current_level.cats[i], current_level.number_of_free_spaces)
+        place_row(i + 1, y, current_level.cats[i], current_level.number_of_free_spaces)
 
     place_common_elements()
     place_gate_generators(current_level.gates)
@@ -443,7 +453,7 @@ def create_button_and_call_function_on_press(button_name, func):
 def empty_level_objects():
     global CURRENT_LEVEL_NUMBER, MOVING_SPRITES, FREE_SPACES_GROUP, FREE_SPACES_LIST, \
         ACTIVE_GATE_GENERATORS_SPRITES, ACTIVE_GATE_GENERATORS_LIST, ACTIVE_CATS, CURRENT_OUTPUT, \
-        CAMERAS, PLATFORMS_GROUP, PLATFORMS_LIST
+        CAMERAS, PLATFORMS_GROUP, PLATFORMS_LIST, MOVABLE_SPRITES
 
     ACTIVE_GATE_GENERATORS_SPRITES.empty()
     ACTIVE_GATE_GENERATORS_LIST = []
@@ -456,12 +466,14 @@ def empty_level_objects():
     CURRENT_LEVEL_NUMBER = get_level_from_screen()
     PLATFORMS_GROUP.empty()
     PLATFORMS_LIST.clear()
+    MOVABLE_SPRITES = []
 
 
 def create_button_and_change_screen(button_name, new_screen):
     global A_BUTTON_WAS_CLICKED, ACTIVE_SCREEN, CURRENT_LEVEL_WAS_DRAWN
 
     if button_name.draw(SCREEN) and not A_BUTTON_WAS_CLICKED:
+        refresh_current_control_info()
         if ACTIVE_SCREEN.startswith('level_'):
             empty_level_objects()
         elif ACTIVE_SCREEN == 'options' and new_screen.startswith('level_'):
@@ -501,11 +513,9 @@ def get_hover_image(element):
             return IMAGES['output_hover']
         elif name == 'camera':
             return IMAGES['camera_hover']
-        elif name in ['catnip_gate', 'cat-food_gate', 'milk_gate', 'box_gate', 'mouse_gate']:
+        elif name in ['catnip_gate', 'cat-food_gate', 'milk_gate', 'box_gate', 'mouse_gate', 'control']:
             image_name = name + '_hover'
             return IMAGES[image_name]
-
-    print('not a hover object')
 
 
 def is_inside_hover_element(element, x, y):
@@ -516,6 +526,57 @@ def get_hover_image_position(x, y):
     if x + 260 > SCREEN_WIDTH:
         return x - 260, y
     return x + 10, y
+
+
+def handle_control_gate_click():
+    show_message('Please click on the controlled gate')
+    CURRENT_CONTROL_INFO['in_progress'] = True
+
+
+def get_control_height(controlled_row, controlling_row):
+    return abs(controlled_row - controlling_row)
+
+
+def compute_middle_point(first_pos, second_pos):
+    return int((first_pos[0] + second_pos[0]) / 2), int((first_pos[1] + second_pos[1]) / 2)
+
+
+def place_control_object_in_position(control_height, position, is_upside_down):
+    path = 'assets/level/gates/spawned_control/'
+    object_name = 'control_' + str(control_height)
+
+    if is_upside_down:
+        object_name = 'control_upside_down_' + str(control_height)
+
+    control_sprites = get_object_sprites(path, object_name)
+    control_obj = game_element.Element('PLACED_control', control_sprites, position[0], position[1], 0)
+    MOVING_SPRITES.add(control_obj)
+    MOVABLE_SPRITES.append(control_obj)
+
+
+def place_control_object(controlled_row, controlling_row, controlled_pos, controlling_pos):
+    control_height = get_control_height(controlled_row, controlling_row)
+    is_upside_down = controlling_row - controlled_row > 0
+    position = compute_middle_point(controlled_pos, controlling_pos)
+
+    place_control_object_in_position(control_height, position, is_upside_down)
+
+
+def handle_placed_control():
+    show_message('You have successfully used a control gate!')
+    print('in handle')
+    print(CURRENT_CONTROL_INFO)
+
+    controlled_row = CURRENT_CONTROL_INFO['controlled_row']
+    controlling_row = CURRENT_CONTROL_INFO['controlling_row']
+
+    controlled_position = CURRENT_CONTROL_INFO['controlled_pos_x'], CURRENT_CONTROL_INFO['controlled_pos_y']
+    controlling_position = CURRENT_CONTROL_INFO['controlling_pos_x'], CURRENT_CONTROL_INFO['controlling_pos_y']
+
+    CURRENT_CONTROL_INFO['controlled_object'].controlled_by = controlling_row - 1
+    print('row ', controlled_row, 'controlled by', controlling_row)
+    place_control_object(controlled_row, controlling_row, controlled_position,
+                         controlling_position)
 
 
 def start_game_loop():
@@ -593,14 +654,17 @@ def start_game_loop():
 
                 for element in ACTIVE_GATE_GENERATORS_LIST:
                     if element.is_position_inside(position):
-                        new_gate = spawn_gate(element.name, position)
-                        if new_gate.is_position_inside(position):
-                            new_gate.is_moving = True
-                            if new_gate.is_attached_to_free_space:
-                                new_gate.is_attached_to_free_space = False
-                                new_gate.free_space.is_visible = True
-                                new_gate.free_space.attached_gate = None
-                                new_gate.free_space = None
+                        if element.name == 'control':
+                            handle_control_gate_click()
+                        else:
+                            new_gate = spawn_gate(element.name, position)
+                            if new_gate.is_position_inside(position):
+                                new_gate.is_moving = True
+                                if new_gate.is_attached_to_free_space:
+                                    new_gate.is_attached_to_free_space = False
+                                    new_gate.free_space.is_visible = True
+                                    new_gate.free_space.attached_gate = None
+                                    new_gate.free_space = None
 
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 for element in MOVABLE_SPRITES:
@@ -612,6 +676,26 @@ def start_game_loop():
                             if element.is_inside_free_space(free_space):
                                 free_space.attach_gate(element)
                                 is_attached = True
+
+                                if CURRENT_CONTROL_INFO['in_progress'] and \
+                                        CURRENT_CONTROL_INFO['controlled_object'] is None:
+                                    CURRENT_CONTROL_INFO['controlled_object'] = element
+                                    CURRENT_CONTROL_INFO['controlled_row'] = free_space.get_row()
+
+                                    CURRENT_CONTROL_INFO['controlled_pos_x'], \
+                                        CURRENT_CONTROL_INFO['controlled_pos_y'] = free_space.get_pos()
+                                    show_message('Now click on the controlled object in the same column.')
+
+                                elif CURRENT_CONTROL_INFO['in_progress'] and \
+                                        CURRENT_CONTROL_INFO['controlling_object'] is None:
+                                    CURRENT_CONTROL_INFO['controlling_object'] = element
+                                    CURRENT_CONTROL_INFO['controlling_row'] = free_space.get_row()
+
+                                    CURRENT_CONTROL_INFO['controlling_pos_x'], \
+                                        CURRENT_CONTROL_INFO['controlling_pos_y'] = free_space.get_pos()
+
+                                    handle_placed_control()
+                                    refresh_current_control_info()
 
                         if not is_attached:
                             MOVING_SPRITES.remove(element)

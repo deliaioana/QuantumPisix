@@ -40,14 +40,14 @@ def get_real_gate_name(name):
         return 'z'
 
 
-def compute_line(size, real_names_list, controlled_list):
+def compute_line(size, real_names_list, controlled_list, number_of_line):
     line = []
     for i in range(size):
         if controlled_list[i] is None:
             pair = (False, real_names_list[i])
             line.append(pair)
         else:
-            pair = (True, (i, controlled_list[i], real_names_list[i]))
+            pair = (True, (number_of_line, controlled_list[i], real_names_list[i]))
             line.append(pair)
     return line
 
@@ -62,12 +62,15 @@ def get_gates_sorted(n, m, circuit):
     for i in range(n):
         line = [(gate.rect.center[0], get_real_gate_name(gate.name), gate)
                 for gate in gates if gate.rect.center[1] == current_min_height]
+        print('line is ', line)
         sorted(line)
+        line = sorted(line, key=lambda x: x[0])
         print("LINE is\n", line)
         real_names_list = list(zip(*line))[1]
         controlled_list = list(zip(*line))[2]
         controlled_list = [gate.controlled_by for gate in controlled_list]
-        line = compute_line(m, real_names_list, controlled_list)
+        print('controlled list: ', controlled_list)
+        line = compute_line(m, real_names_list, controlled_list, i)
         matrix.append(line)
 
         if i < n-1:
