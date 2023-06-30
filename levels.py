@@ -18,13 +18,13 @@ class Levels:
         level_9 = level.Level([('cookie', 'idle')], ['cat-food_gate'], 1, "", [1])
         level_10 = level.Level([('miso', 'asleep')], ['mouse_gate'], 1, "", [1])
         level_11 = level.Level([('peanut', 'idle')], ['mouse_gate'], 1, "", [0])
-        level_12 = level.Level([('foxy', 'asleep'), ('peanut', 'asleep')], ['milk_gate', 'control'], 1, "", [0, 0])
+        level_12 = level.Level([('foxy', 'asleep'), ('peanut', 'asleep')], ['milk_gate', 'control', 'box_gate'], 1, "", [0, 0])
 
-        level_13 = level.Level([('miso', 'idle'), ('cookie', 'idle')], ['milk_gate', 'control'], 2, "", [0, 0])
+        level_13 = level.Level([('miso', 'idle'), ('cookie', 'idle')], ['milk_gate', 'control', 'box_gate'], 2, "", [0, 0])
         level_14 = level.Level([('foxy', 'asleep'), ('peanut', 'asleep')],
                                ['catnip_gate', 'control', 'milk_gate', 'box_gate'], 2, "", [2, 3])
         level_15 = level.Level([('miso', 'asleep'), ('cookie', 'asleep'), ('peanut', 'asleep'), ('foxy', 'asleep')],
-                               ['milk_gate', 'control', 'catnip_gate'], 4, "", [2, 3, 3, 3])
+                               ['milk_gate', 'control', 'catnip_gate', 'box_gate'], 4, "", [2, 3, 3, 3])
         level_16 = level.Level([('foxy', 'asleep'), ('cookie', 'idle'), ('miso', 'asleep')],
                                ['milk_gate', 'control', 'cat-food_gate', 'box_gate', 'mouse_gate', 'catnip_gate'],
                                3, "", [2, 0, 1])

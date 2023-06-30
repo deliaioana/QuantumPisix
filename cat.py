@@ -22,13 +22,13 @@ class Cat(pygame.sprite.Sprite):
         self.image = self.sprites[self.state][int(self.current_sprite)]
 
     def move_in_circuit(self):
-        self.rect.center = (self.rect.center[0] + 5, self.rect.center[1])
+        self.rect.center = (self.rect.center[0] + 2, self.rect.center[1])
 
     def is_next_to_camera(self, pos_x):
-        return self.rect.center[0] + 100 >= pos_x
+        return self.rect.center[0] + 80 >= pos_x
 
-    def change_state(self, gate_name):
-        if gate_name == 'SPAWNED_catnip_gate':
+    def change_state(self, gate_name, is_controlled):
+        if gate_name == 'SPAWNED_catnip_gate' or is_controlled:
             self.state = 'super'
             self.speed = 1
 

@@ -35,7 +35,7 @@ ACTIVE_SCREEN = 'menu'
 
 LEVELS_FIRST_PAGE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 LEVELS_SECOND_PAGE = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
-UNLOCKED_LEVELS = [1]
+UNLOCKED_LEVELS = [1, 12, 13, 23, 5]
 MOVING_SPRITES = pygame.sprite.Group()
 MOVABLE_SPRITES = []
 CURRENT_OUTPUT = []
@@ -329,7 +329,7 @@ def place_common_elements():
     output_image = pygame.image.load(current_output_image_name).convert_alpha()
     output_frames = [output_image]
 
-    output_element = game_element.Element('output', output_frames, 925, SCREEN_HEIGHT / 2, 0)
+    output_element = game_element.Element('output', output_frames, 60, SCREEN_HEIGHT / 2 + 20, 0)
 
     MOVING_SPRITES.add(output_element)
     CURRENT_OUTPUT.append(output_element)
@@ -353,7 +353,7 @@ def place_row(row_number, y, cat, number_of_free_spaces):
         FREE_SPACES_LIST.append(free_space)
 
     camera = game_element.Element('camera', [IMAGES['camera']],
-                                  starting_x + total_width - 0.5 * PIXELS['cat-width'], y, 0)
+                                  starting_x + total_width - 0.5 * PIXELS['cat-width'] + 100, y, 0)
     MOVING_SPRITES.add(camera)
     CAMERAS.append(camera)
 
@@ -721,7 +721,7 @@ def start_game_loop():
 
                                         CURRENT_CONTROL_INFO['controlled_pos_x'], \
                                             CURRENT_CONTROL_INFO['controlled_pos_y'] = free_space.get_pos()
-                                        show_message('Now click on the controlling empty zone in the same column.')
+                                        show_message('Now click on the controlling box in the same column.')
 
                                     elif CURRENT_CONTROL_INFO['in_progress'] and \
                                             CURRENT_CONTROL_INFO['controlling_object'] is None:
@@ -756,7 +756,10 @@ def start_game_loop():
                     if cat.is_next_to_element(element):
                         MOVING_SPRITES.remove(element)
                         MOVABLE_SPRITES.remove(element)
-                        cat.change_state(element.name)
+                        if element.controlled_by is not None:
+                            cat.change_state(element.name, True)
+                        else:
+                            cat.change_state(element.name, False)
 
                 if cat.is_next_to_camera(CAMERAS[0].get_pos()[0]):
                     cat.collapse_state(int(MEASURED_OUTPUT[ACTIVE_CATS.index(cat)]))
