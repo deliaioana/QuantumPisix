@@ -721,7 +721,7 @@ def start_game_loop():
 
                                         CURRENT_CONTROL_INFO['controlled_pos_x'], \
                                             CURRENT_CONTROL_INFO['controlled_pos_y'] = free_space.get_pos()
-                                        show_message('Now click on the controlled object in the same column.')
+                                        show_message('Now click on the controlling empty zone in the same column.')
 
                                     elif CURRENT_CONTROL_INFO['in_progress'] and \
                                             CURRENT_CONTROL_INFO['controlling_object'] is None:
